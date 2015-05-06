@@ -100,6 +100,9 @@ MCOperand RISCVMCInstLower::lowerOperand(const MachineOperand &MO) const {
     return lowerSymbolOperand(MO, AsmPrinter.GetBlockAddressSymbol(BA),
                               MO.getOffset());
   }
+
+  case MachineOperand::MO_RegisterMask:
+    return MCOperand();
   }
 }
 
