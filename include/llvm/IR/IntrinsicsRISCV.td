@@ -15,13 +15,13 @@
 
 //===------------------- Tagged Memory Intrinsics --------------------===//
 
-let TargetPrefix = "lowrisc" in {
+let TargetPrefix = "riscv" in {
   // FIXME can we talk about alignment? Want to be a pointer to a 64-bit type?
   // FIXME Request review on choice of Intr*Mem!
-  def stag : Intrinsic<[],
+  def int_riscv_stag : Intrinsic<[],
                        [llvm_anyptr_ty, llvm_i8_ty],
                        [IntrReadWriteArgMem, NoCapture<0>]>;
-  def ltag : Intrinsic<[llvm_i8_ty],
+  def int_riscv_ltag : Intrinsic<[llvm_i8_ty],
                        [llvm_anyptr_ty],
                        [IntrReadWriteArgMem, NoCapture<0>]>;
 }
