@@ -25,7 +25,6 @@ def FeatureF : SubtargetFeature<"f", "HasF", "true",
                                 "Supports Single-Precision Floating-Point.">;
 def FeatureD : SubtargetFeature<"d", "HasD", "true",
                                 "Supports Double-Precision Floating-Point.">;
-
 def FeatureTM : SubtargetFeature<"tm", "HasTM", "true", // FIXME false?
                                  "Supports tagged memory.">;
 
