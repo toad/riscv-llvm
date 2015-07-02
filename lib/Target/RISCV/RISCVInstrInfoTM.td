@@ -12,8 +12,9 @@
 
 // Surely this is a B-type? I guess it doesn't matter as we are producing assembler, not binary?
 // Treat as InstStore
-def STAG : InstStore<"stag", 0b1010111, 0b001, int_riscv_stag, GR64, mem64>, Requires<[IsRV64, HasTM]>;
+// FIXME add HasTM to the required list. At the moment that causes it to fail to match somehow.
+def STAG : InstStore<"stag", 0b1010111, 0b001, int_riscv_stag, GR64, mem64>, Requires<[IsRV64]>;
 
 // InstLoad actually fits this best...
-//def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requires<[IsRV64, HasTM]>;
+//def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requires<[IsRV64]>;
 
