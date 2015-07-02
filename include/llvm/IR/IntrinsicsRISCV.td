@@ -20,8 +20,8 @@ let TargetPrefix = "riscv" in {
   // FIXME Request review on choice of Intr*Mem!
   def int_riscv_stag : Intrinsic<[],
                        [llvm_i64_ty, llvm_ptr_ty],
-                       [IntrReadWriteArgMem, NoCapture<0>]>;
+                       [IntrReadWriteArgMem, NoCapture<1>]>;
   def int_riscv_ltag : Intrinsic<[llvm_i64_ty],
                        [llvm_ptr_ty],
-                       [IntrReadWriteArgMem, NoCapture<0>]>;
+                       [IntrReadWriteArgMem, NoCapture<1>]>;
 }
