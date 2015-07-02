@@ -156,7 +156,7 @@ CallInst *IRBuilderBase::CreateRISCVSetTag(Value *Ptr, Value *TagValue) {
   assert(isa<PointerType>(Ptr->getType()) &&
          "stag only applies to pointers.");
   Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr
-  Value *Ops[] = { Ptr, TagValue };
+  Value *Ops[] = { TagValue, Ptr };
   Module *M = BB->getParent()->getParent();
   Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_stag);
   return createCallHelper(TheFn, Ops, this);

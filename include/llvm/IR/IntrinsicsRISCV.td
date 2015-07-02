@@ -19,7 +19,7 @@ let TargetPrefix = "riscv" in {
   // FIXME can we talk about alignment? Want to be a pointer to a 64-bit type?
   // FIXME Request review on choice of Intr*Mem!
   def int_riscv_stag : Intrinsic<[],
-                       [llvm_ptr_ty, llvm_i64_ty],
+                       [llvm_i64_ty, llvm_ptr_ty],
                        [IntrReadWriteArgMem, NoCapture<0>]>;
   def int_riscv_ltag : Intrinsic<[llvm_i64_ty],
                        [llvm_ptr_ty],
