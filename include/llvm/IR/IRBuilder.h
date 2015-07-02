@@ -349,6 +349,11 @@ public:
   /// If the pointer isn't i8* it will be converted.
   CallInst *CreateLifetimeEnd(Value *Ptr, ConstantInt *Size = 0);
 
+  /// \brief Create a riscv.stag intrinsic. (Platform specific!!)
+  ///
+  /// 
+  CallInst *CreateRISCVSetTag(Value *Ptr, Value *TagValue);
+
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
 };
