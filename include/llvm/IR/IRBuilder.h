@@ -349,6 +349,11 @@ public:
   /// If the pointer isn't i8* it will be converted.
   CallInst *CreateLifetimeEnd(Value *Ptr, ConstantInt *Size = 0);
 
+  /// \brief Create a riscv.stag intrinsic. (Platform specific!!)
+  ///
+  ///
+  CallInst *CreateRISCVSetTag(Value *Ptr, Value *TagValue);
+
 public:
   // FIXME RISCV MOVE
   // FIXME will need to be revised when we have final spec
@@ -362,6 +367,7 @@ public:
     TAG_CLEAN = 4, // -> 0 (dirty)
     TAG_WRITE_THEN_READ = 6 // not readable until written (then 0)
   };
+
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
 };
