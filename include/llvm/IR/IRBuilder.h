@@ -354,6 +354,11 @@ public:
   /// 
   CallInst *CreateRISCVStoreTag(Value *Ptr, Value *TagValue);
 
+  /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
+  ///
+  ///
+  CallInst *CreateRISCVLoadTag(Value *Ptr, Value *TagValue);
+
 public:
   // FIXME RISCV MOVE
   // FIXME will need to be revised when we have final spec
