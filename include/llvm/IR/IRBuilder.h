@@ -352,7 +352,7 @@ public:
   /// \brief Create a riscv.stag intrinsic. (Platform specific!!)
   ///
   /// 
-  CallInst *CreateRISCVSetTag(Value *Ptr, Value *TagValue);
+  CallInst *CreateRISCVStoreTag(Value *Ptr, Value *TagValue);
 
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
