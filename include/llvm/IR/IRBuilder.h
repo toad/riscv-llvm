@@ -357,7 +357,7 @@ public:
   /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
   ///
   ///
-  CallInst *CreateRISCVLoadTag(Value *Ptr, Value *TagValue);
+  CallInst *CreateRISCVLoadTag(Value *Ptr);
 
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
