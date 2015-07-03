@@ -15,5 +15,5 @@
 def STAG : InstStore<"stag", 0b1010111, 0b001, int_riscv_stag, GR64, mem64>, Requires<[IsRV64,HasTM]>;
 
 // InstLoad actually fits this best...
-//def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requires<[IsRV64,HasTM]>;
+def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requires<[IsRV64,HasTM]>;
 
