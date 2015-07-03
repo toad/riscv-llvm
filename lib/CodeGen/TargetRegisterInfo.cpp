@@ -18,6 +18,8 @@
 #include "llvm/CodeGen/VirtRegMap.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <iostream>
+
 using namespace llvm;
 
 TargetRegisterInfo::TargetRegisterInfo(const TargetRegisterInfoDesc *ID,
@@ -106,11 +108,23 @@ TargetRegisterInfo::getMinimalPhysRegClass(unsigned reg, EVT VT) const {
   const TargetRegisterClass* BestRC = 0;
   for (regclass_iterator I = regclass_begin(), E = regclass_end(); I != E; ++I){
     const TargetRegisterClass* RC = *I;
+    std::cout << "Checking register class " << (RC -> getName()) << "\n";
+    if(VT != MVT::Other) {
+        std::cout << "Match by default\n";
+    } else if(RC->hasType(VT)) {
+        std::cout << "Register class " << (RC -> getName()) << " has type " << VT.getEVTString() << "\n";
+    }
+    if(RC -> contains(reg)) {
+        std::cout << "Register class " << (RC -> getName()) << " has register " << reg << "\n";
+    }
     if ((VT == MVT::Other || RC->hasType(VT)) && RC->contains(reg) &&
         (!BestRC || BestRC->hasSubClass(RC)))
       BestRC = RC;
   }
 
+  if(!BestRC) {
+      std::cout << "Couldn't find the register class for physical register " << reg << " type " << VT.getEVTString() << "\n";
+  }
   assert(BestRC && "Couldn't find the register class");
   return BestRC;
 }
