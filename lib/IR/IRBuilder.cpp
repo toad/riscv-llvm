@@ -152,7 +152,7 @@ CallInst *IRBuilderBase::CreateLifetimeEnd(Value *Ptr, ConstantInt *Size) {
   return createCallHelper(TheFn, Ops, this);
 }
 
-CallInst *IRBuilderBase::CreateRISCVSetTag(Value *Ptr, Value *TagValue) {
+CallInst *IRBuilderBase::CreateRISCVStoreTag(Value *Ptr, Value *TagValue) {
   assert(isa<PointerType>(Ptr->getType()) &&
          "stag only applies to pointers.");
   Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr

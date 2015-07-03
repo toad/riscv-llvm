@@ -351,8 +351,8 @@ public:
 
   /// \brief Create a riscv.stag intrinsic. (Platform specific!!)
   ///
-  ///
-  CallInst *CreateRISCVSetTag(Value *Ptr, Value *TagValue);
+  /// 
+  CallInst *CreateRISCVStoreTag(Value *Ptr, Value *TagValue);
 
 public:
   // FIXME RISCV MOVE
