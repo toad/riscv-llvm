@@ -1066,6 +1066,10 @@ public:
   // Instruction creation methods: RISCV stuff
   //===--------------------------------------------------------------------===//
 
+  // Utility method from IRBuilder.cpp
+  static CallInst *createCallHelper(Value *Callee, ArrayRef<Value *> Ops,
+                                    IRBuilderBase *Builder);
+
   /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
   ///
   ///
