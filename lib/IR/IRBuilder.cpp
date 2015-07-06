@@ -181,7 +181,7 @@ CallInst *IRBuilderBase::CreateTrap() {
 Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   if(RISCVLoadAndCheckReadOnly) return RISCVLoadAndCheckReadOnly;
   Constant* c = m->getOrInsertFunction("__llvm_riscv_load_must_be_read_only",
-                                         IntegerType::get(Context, 64), // return type
+                                         Type::getVoidTy(Context), // return type
                                          PointerType::getUnqual(IntegerType::get(Context, 8)),
                                          NULL);
   Function *f = cast<Function> (c);
@@ -196,11 +196,10 @@ Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, getInt64(1));
   builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
   builder.SetInsertPoint(onTagged);
-  Value *fetched = builder.CreateLoad(ptr);
-  builder.CreateRet(fetched);
+  builder.CreateRetVoid();
   builder.SetInsertPoint(onNotTagged);
   builder.CreateTrap();
-  builder.CreateRet(getInt64(0)); // FIXME Needs a terminal?
+  builder.CreateRetVoid(); // FIXME Needs a terminal?
   RISCVLoadAndCheckReadOnly = f;
   return f;
 }

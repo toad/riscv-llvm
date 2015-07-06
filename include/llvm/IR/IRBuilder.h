@@ -1081,10 +1081,8 @@ public:
     Value *Ops[] = { Ptr };
     Module *M = BB->getParent()->getParent();
     Value *fn = lazyGetRISCVLoadTaggedReadOnly(M);
-    CallInst *call = createCallHelper(fn, Ops, this);
-    PointerType *origPtr = (PointerType*) OPtr;
-    Type *type = origPtr -> getElementType();
-    return CreateBitCast(call, type);
+    createCallHelper(fn, Ops, this);
+    return CreateLoad(OPtr);
   }
 
   //===--------------------------------------------------------------------===//
