@@ -374,8 +374,6 @@ protected:
   // FIXME RISCV MOVE
   // FIXME static?
   Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
-
-private:
   Value *getCastedInt8PtrValue(Value *Ptr);
 };
 
