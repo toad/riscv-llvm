@@ -1069,7 +1069,7 @@ public:
   // Instruction creation methods: RISCV stuff
   //===--------------------------------------------------------------------===//
 
-  /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
+  /// \brief Load a 64-bit value, but fail if it's not tagged read-only. (Platform specific!!)
   ///
   ///
   // FIXME Here because it uses CreateBitCast but should be in IRBuilderBase
