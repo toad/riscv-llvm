@@ -366,19 +366,16 @@ public:
   ///
   CallInst *CreateRISCVLoadTag(Value *Ptr);
 
-  /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
-  ///
-  ///
-  CallInst *CreateRISCVLoadTaggedReadOnly(Value *Ptr);
-
   /// \brief Fail
   CallInst *CreateTrap();
 
-private:
-  Value *getCastedInt8PtrValue(Value *Ptr);
+protected:
   // FIXME RISCV MOVE
   // FIXME static?
   Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
+
+private:
+  Value *getCastedInt8PtrValue(Value *Ptr);
 };
 
 /// \brief This provides a uniform API for creating instructions and inserting
@@ -1064,6 +1061,29 @@ public:
     Value *zero = ConstantInt::get(Type::getInt32Ty(Context), 0);
     Value *Args[] = { zero, zero };
     return CreateInBoundsGEP(gv, Args, Name);
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Instruction creation methods: RISCV stuff
+  //===--------------------------------------------------------------------===//
+
+  /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
+  ///
+  ///
+  // FIXME Here because it uses CreateBitCast but should be in IRBuilderBase
+  // FIXME Actually it probably shouldn't be here at all? Consider moving...
+  CallInst *CreateRISCVLoadTaggedReadOnly(Value *OPtr) {
+    assert(isa<PointerType>(OPtr->getType()) &&
+           "ltag only applies to pointers.");
+    Value *Ptr = getCastedInt8PtrValue(OPtr); // FIXME consider int64 ptr
+    Value *Ops[] = { Ptr };
+    Module *M = BB->getParent()->getParent();
+    Value *fn = lazyGetRISCVLoadTaggedReadOnly(M);
+    CallInst *call = createCallHelper(fn, Ops, this);
+    PointerType *origPtr = (PointerType*) OPtr;
+    Type *type = origPtr -> getElementType();
+    Value *ret = CreateBitCast(call, type);
+    return (CallInst*) ret;
   }
 
   //===--------------------------------------------------------------------===//

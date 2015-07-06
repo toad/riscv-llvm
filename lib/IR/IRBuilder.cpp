@@ -178,20 +178,6 @@ CallInst *IRBuilderBase::CreateTrap() {
   return createCallHelper(TheFn, ArrayRef<Value*>(), this);
 }
 
-CallInst *IRBuilderBase::CreateRISCVLoadTaggedReadOnly(Value *OPtr) {
-  assert(isa<PointerType>(OPtr->getType()) &&
-         "ltag only applies to pointers.");
-  Value *Ptr = getCastedInt8PtrValue(OPtr); // FIXME consider int64 ptr
-  Value *Ops[] = { Ptr };
-  Module *M = BB->getParent()->getParent();
-  Value *fn = lazyGetRISCVLoadTaggedReadOnly(M);
-  CallInst *call = createCallHelper(fn, Ops, this);
-  PointerType *origPtr = (PointerType*) OPtr;
-  Type *type = origPtr -> getElementType();
-  Value *ret = CreateBitCast(call, type);
-  return (CallInst*) ret;
-}
-
 Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   if(RISCVLoadAndCheckReadOnly) return RISCVLoadAndCheckReadOnly;
   Constant* c = m->getOrInsertFunction("__llvm_riscv_load_must_be_read_only",
