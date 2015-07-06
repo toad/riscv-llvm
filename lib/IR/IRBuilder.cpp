@@ -53,7 +53,7 @@ Value *IRBuilderBase::getCastedInt8PtrValue(Value *Ptr) {
   return BCI;
 }
 
-static CallInst *createCallHelper(Value *Callee, ArrayRef<Value *> Ops,
+CallInst *IRBuilderBase::createCallHelper(Value *Callee, ArrayRef<Value *> Ops,
                                   IRBuilderBase *Builder) {
   CallInst *CI = CallInst::Create(Callee, Ops, "");
   Builder->GetInsertBlock()->getInstList().insert(Builder->GetInsertPoint(),CI);

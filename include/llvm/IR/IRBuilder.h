@@ -375,6 +375,9 @@ protected:
   // FIXME static?
   Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
   Value *getCastedInt8PtrValue(Value *Ptr);
+  // Utility method now needed by both classes. FIXME move.
+  static CallInst *createCallHelper(Value *Callee, ArrayRef<Value *> Ops,
+                                    IRBuilderBase *Builder);
 };
 
 /// \brief This provides a uniform API for creating instructions and inserting
@@ -1065,10 +1068,6 @@ public:
   //===--------------------------------------------------------------------===//
   // Instruction creation methods: RISCV stuff
   //===--------------------------------------------------------------------===//
-
-  // Utility method from IRBuilder.cpp
-  static CallInst *createCallHelper(Value *Callee, ArrayRef<Value *> Ops,
-                                    IRBuilderBase *Builder);
 
   /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
   ///
