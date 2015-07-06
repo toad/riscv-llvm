@@ -359,6 +359,9 @@ public:
   ///
   CallInst *CreateRISCVLoadTag(Value *Ptr);
 
+  /// \brief Fail
+  CallInst *CreateTrap();
+
 public:
   // FIXME RISCV MOVE
   // FIXME will need to be revised when we have final spec
