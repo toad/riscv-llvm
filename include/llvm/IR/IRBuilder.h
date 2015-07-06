@@ -56,6 +56,13 @@ protected:
   BasicBlock *BB;
   BasicBlock::iterator InsertPt;
   LLVMContext &Context;
+
+  // FIXME MOVE/REFACTOR!
+  // FIXME Can we introduce this in such a way that programs can use it?
+  // They would need a header?
+  // FIXME Look at how such cases are handled elsewhere.
+  /// __llvm_riscv_load_must_be_read_only
+  Function *RISCVLoadAndCheckReadOnly;
 public:
 
   IRBuilderBase(LLVMContext &context)
@@ -359,11 +366,19 @@ public:
   ///
   CallInst *CreateRISCVLoadTag(Value *Ptr);
 
+  /// \brief Create a riscv.ltag intrinsic. (Platform specific!!)
+  ///
+  ///
+  CallInst *CreateRISCVLoadTaggedReadOnly(Value *Ptr);
+
   /// \brief Fail
   CallInst *CreateTrap();
 
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
+  // FIXME RISCV MOVE
+  // FIXME static?
+  Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
 };
 
 /// \brief This provides a uniform API for creating instructions and inserting

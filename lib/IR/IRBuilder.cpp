@@ -17,6 +17,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
 using namespace llvm;
 
 /// CreateGlobalString - Make a new global variable with an initializer that
@@ -177,3 +178,39 @@ CallInst *IRBuilderBase::CreateTrap() {
   return createCallHelper(TheFn, ArrayRef<Value*>(), this);
 }
 
+CallInst *IRBuilderBase::CreateRISCVLoadTaggedReadOnly(Value *Ptr) {
+  assert(isa<PointerType>(Ptr->getType()) &&
+         "ltag only applies to pointers.");
+  Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr
+  Value *Ops[] = { Ptr };
+  Module *M = BB->getParent()->getParent();
+  Value *fn = lazyGetRISCVLoadTaggedReadOnly(M);
+  return createCallHelper(fn, Ops, this);
+}
+
+Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
+  if(RISCVLoadAndCheckReadOnly) return RISCVLoadAndCheckReadOnly;
+  Constant* c = m->getOrInsertFunction("__llvm_riscv_load_must_be_read_only",
+                                         IntegerType::get(Context, 64), // return type
+                                         PointerType::getUnqual(IntegerType::get(Context, 8)),
+                                         NULL);
+  Function *f = cast<Function> (c);
+  f -> setCallingConv(BB->getParent()->getCallingConv());
+  Function::arg_iterator args = f->arg_begin();
+  Value *ptr = args++;
+  BasicBlock* entry = BasicBlock::Create(getGlobalContext(), "entry", f);
+  BasicBlock* onTagged = BasicBlock::Create(getGlobalContext(), "entry", f);
+  BasicBlock* onNotTagged = BasicBlock::Create(getGlobalContext(), "entry", f);
+  IRBuilder<> builder(entry);
+  Value *ltag = builder.CreateRISCVLoadTag(ptr);
+  Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, getInt64(1));
+  builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
+  builder.SetInsertPoint(onTagged);
+  Value *fetched = builder.CreateLoad(ptr);
+  builder.CreateRet(fetched);
+  builder.SetInsertPoint(onNotTagged);
+  builder.CreateTrap();
+  builder.CreateRet(getInt64(0)); // FIXME Needs a terminal?
+  RISCVLoadAndCheckReadOnly = f;
+  return f;
+}
