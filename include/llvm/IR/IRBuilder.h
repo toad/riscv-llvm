@@ -359,6 +359,9 @@ public:
   ///
   CallInst *CreateRISCVLoadTag(Value *Ptr);
 
+  /// \brief Fail
+  CallInst *CreateTrap();
+
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
 };

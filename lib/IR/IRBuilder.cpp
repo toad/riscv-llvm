@@ -171,4 +171,9 @@ CallInst *IRBuilderBase::CreateRISCVLoadTag(Value *Ptr) {
   return createCallHelper(TheFn, ArrayRef<Value*>(), this);
 }
 
+CallInst *IRBuilderBase::CreateTrap() {
+  Module *M = BB->getParent()->getParent();
+  Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::trap);
+  return createCallHelper(TheFn, ArrayRef<Value*>(), this);
+}
 
