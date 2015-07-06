@@ -1072,7 +1072,7 @@ public:
   ///
   // FIXME Here because it uses CreateBitCast but should be in IRBuilderBase
   // FIXME Actually it probably shouldn't be here at all? Consider moving...
-  CallInst *CreateRISCVLoadTaggedReadOnly(Value *OPtr) {
+  Value *CreateRISCVLoadTaggedReadOnly(Value *OPtr) {
     assert(isa<PointerType>(OPtr->getType()) &&
            "ltag only applies to pointers.");
     Value *Ptr = getCastedInt8PtrValue(OPtr); // FIXME consider int64 ptr
@@ -1082,8 +1082,7 @@ public:
     CallInst *call = createCallHelper(fn, Ops, this);
     PointerType *origPtr = (PointerType*) OPtr;
     Type *type = origPtr -> getElementType();
-    Value *ret = CreateBitCast(call, type);
-    return (CallInst*) ret;
+    return CreateBitCast(call, type);
   }
 
   //===--------------------------------------------------------------------===//
