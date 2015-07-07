@@ -354,13 +354,13 @@ public:
   // FIXME will need to be revised when we have final spec
   
   enum LowRISCMemoryTag {
-    NORMAL = 0,
-    READ_ONLY = 1,
-    WRITE_ONLY = 2,
-    INVALID = 3,
+    TAG_NORMAL = 0,
+    TAG_READ_ONLY = 1,
+    TAG_WRITE_ONLY = 2,
+    TAG_INVALID = 3,
     // Lazy tags (bit 2 = set to 0 on write)
-    CLEAN = 4, // -> 0 (dirty)
-    WRITE_THEN_READ = 6 // not readable until written (then 0)
+    TAG_CLEAN = 4, // -> 0 (dirty)
+    TAG_WRITE_THEN_READ = 6 // not readable until written (then 0)
   };
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
