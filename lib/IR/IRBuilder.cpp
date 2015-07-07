@@ -18,7 +18,6 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include <cstdio>
 using namespace llvm;
 
 /// CreateGlobalString - Make a new global variable with an initializer that
@@ -155,7 +154,6 @@ CallInst *IRBuilderBase::CreateLifetimeEnd(Value *Ptr, ConstantInt *Size) {
 }
 
 CallInst *IRBuilderBase::CreateRISCVStoreTag(Value *Ptr, Value *TagValue) {
-  printf("Creating StoreTag...\n");
   assert(isa<PointerType>(Ptr->getType()) &&
          "stag only applies to pointers.");
   Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr
@@ -166,7 +164,6 @@ CallInst *IRBuilderBase::CreateRISCVStoreTag(Value *Ptr, Value *TagValue) {
 }
 
 CallInst *IRBuilderBase::CreateRISCVLoadTag(Value *Ptr) {
-  printf("Creating LoadTag...\n");
   assert(isa<PointerType>(Ptr->getType()) &&
          "ltag only applies to pointers.");
   Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr
@@ -177,18 +174,13 @@ CallInst *IRBuilderBase::CreateRISCVLoadTag(Value *Ptr) {
 }
 
 CallInst *IRBuilderBase::CreateTrap() {
-  printf("Creating trap...\n");
   Module *M = BB->getParent()->getParent();
   Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::trap);
   return createCallHelper(TheFn, ArrayRef<Value*>(), this);
 }
 
 Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
-  if(RISCVLoadAndCheckReadOnly) {
-    printf("Returning previous value of function...\n");
-    return RISCVLoadAndCheckReadOnly;
-  }
-  printf("Setting up RISCVLoadAndCheckReadOnly...\n");
+  if(RISCVLoadAndCheckReadOnly) return RISCVLoadAndCheckReadOnly;
   Constant* c = m->getOrInsertFunction("__llvm_riscv_load_must_be_read_only",
                                          Type::getVoidTy(Context), // return type
                                          PointerType::getUnqual(IntegerType::get(Context, 8)),
@@ -210,6 +202,5 @@ Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   builder.CreateTrap();
   builder.CreateRetVoid(); // FIXME Needs a terminal?
   RISCVLoadAndCheckReadOnly = f;
-  printf("RISCVLoadAndCheckReadOnly ready...\n");
   return f;
 }
