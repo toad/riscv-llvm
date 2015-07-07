@@ -23,9 +23,12 @@ int main() {
 	Test *t = new SubclassTest();
 	printf("Created a legitimate Test\n");
 	t->print();
+	printf("Attempting to replace vptr.\n");
+	printf("This should fail in non-lazy mode, but succeed in lazy mode.\n");
 	memcpy((void*) t, &ppEvil, sizeof(void*));
 	printf("Replaced vptr\n");
 	printf("Expect trouble!\n");
+	printf("In lazy mode, should abort...\n");
 	t->print();
 	printf("FAILURE: Called invalid pointer?!\n");
 	return 5;
