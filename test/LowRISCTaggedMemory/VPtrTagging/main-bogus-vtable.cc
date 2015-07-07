@@ -1,3 +1,11 @@
+/* Tests the vptr protection: If a virtual function is called but the vptr
+ * is not tagged, we trap.
+ *
+ * If compiled with GCC, this will run the evil function.
+ * If compiled with LLVM with the LowRISC enhancements, it will trap and
+ * hence exit silently.
+ */
+
 #include "Test.hh"
 #include "SubclassTest.hh"
 #include <cstdio>

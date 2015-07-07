@@ -1,3 +1,10 @@
+/* Test for overwriting the vptr.
+ *
+ * If run with GCC, should crash.
+ * If run with LLVM with the LowRISC enhancements, should fail because the
+ * vptr is read-only.
+ */
+
 #include "Test.hh"
 #include "SubclassTest.hh"
 #include <cstdio>
