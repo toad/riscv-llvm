@@ -201,7 +201,7 @@ Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   builder.SetInsertPoint(onNotTagged);
   builder.CreateTrap();
   builder.CreateRetVoid(); // FIXME Needs a terminal?
-  f -> addFnAttr(Attribute::AlwaysInline);
+  //f -> addFnAttr(Attribute::AlwaysInline); // FIXME fails to compile
   RISCVLoadAndCheckReadOnly = f;
   return f;
 }
