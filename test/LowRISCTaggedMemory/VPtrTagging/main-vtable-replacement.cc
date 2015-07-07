@@ -11,7 +11,7 @@ void evil() {
 }
 
 void *pEvil = (void*) evil;
-void **ppEvil = (void*) (&pEvil);
+void *ppEvil = (void*) (&pEvil);
 
 int main() {
 	Test *t = new SubclassTest();
