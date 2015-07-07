@@ -370,7 +370,7 @@ public:
   /// \brief Fail
   CallInst *CreateTrap();
 
-protected:
+public:
   // FIXME RISCV MOVE
   // FIXME will need to be revised when we have final spec
   
@@ -383,6 +383,7 @@ protected:
     CLEAN = 4, // -> 0 (dirty)
     WRITE_THEN_READ = 6 // not readable until written (then 0)
   };
+protected:
   // FIXME static?
   Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
   Value *getCastedInt8PtrValue(Value *Ptr);
