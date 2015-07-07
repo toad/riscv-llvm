@@ -19,11 +19,14 @@ int main() {
 	t->print();
 	// Now test the tagging code...
 	printf("Trying to overwrite the vptr...\n");
-	printf("This should fail!\n");
+	printf("This should succeed in lazy mode and fail in non-lazy mode...\n");
 	void *p = t;
 	long *pl = (long*) p;
 	pl[0] = 1;
-	printf("OVERWRITTEN THE VPTR. THIS IS BAD! Crashing...\n");
+	printf("Successfully overwritten the vptr!\n");
+	printf("Without protection, should crash at this point.\n");
+	printf("With protection, should abort...\n");
 	t->print();
+	printf("ERROR: Called invalid funcion!\n");
 	return 5;
 }

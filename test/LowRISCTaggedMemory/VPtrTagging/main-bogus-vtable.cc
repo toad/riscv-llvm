@@ -3,7 +3,7 @@
  *
  * If compiled with GCC, this will run the evil function.
  * If compiled with LLVM with the LowRISC enhancements, it will trap and
- * hence exit silently.
+ * hence exit silently after "Expect trouble" is printed.
  */
 
 #include "Test.hh"
