@@ -194,7 +194,7 @@ Function *IRBuilderBase::lazyGetRISCVLoadTaggedReadOnly(Module *m) {
   BasicBlock* onNotTagged = BasicBlock::Create(getGlobalContext(), "entry", f);
   IRBuilder<> builder(entry);
   Value *ltag = builder.CreateRISCVLoadTag(ptr);
-  Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, getInt64(1));
+  Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, getInt64(LowRISCMemoryTag.READ_ONLY));
   builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
   builder.SetInsertPoint(onTagged);
   builder.CreateRetVoid();

@@ -372,6 +372,13 @@ public:
 
 protected:
   // FIXME RISCV MOVE
+  // FIXME will need to be revised when we have final spec
+  enum LowRISCMemoryTag {
+    NORMAL = 0,
+    READ_ONLY = 1,
+    WRITE_ONLY = 2,
+    INVALID = 3
+  }
   // FIXME static?
   Function *lazyGetRISCVLoadTaggedReadOnly(Module *m);
   Value *getCastedInt8PtrValue(Value *Ptr);
