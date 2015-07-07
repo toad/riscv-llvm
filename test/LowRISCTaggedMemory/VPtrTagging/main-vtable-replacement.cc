@@ -1,3 +1,9 @@
+/* Tests replacement of an existing vtable.
+ *
+ * If compiled with GCC, will run the evil function.
+ * If compiled with LLVM, will abort because the vptr is read-only.
+ */
+
 #include "Test.hh"
 #include "SubclassTest.hh"
 #include <cstdio>
