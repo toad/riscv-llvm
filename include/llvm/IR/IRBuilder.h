@@ -63,7 +63,7 @@ protected:
   // They would need a header?
   // FIXME Look at how such cases are handled elsewhere.
   /// __llvm_riscv_load_must_be_read_only
-  Function *RISCVLoadAndCheckReadOnly;
+  Function *RISCVLoadAndCheckReadOnly = NULL;
 public:
 
   IRBuilderBase(LLVMContext &context)
