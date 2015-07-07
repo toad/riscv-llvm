@@ -349,6 +349,15 @@ public:
   /// If the pointer isn't i8* it will be converted.
   CallInst *CreateLifetimeEnd(Value *Ptr, ConstantInt *Size = 0);
 
+public:
+  // FIXME RISCV MOVE
+  // FIXME will need to be revised when we have final spec
+  enum LowRISCMemoryTag {
+    NORMAL = 0,
+    READ_ONLY = 1,
+    WRITE_ONLY = 2,
+    INVALID = 3
+  }
 private:
   Value *getCastedInt8PtrValue(Value *Ptr);
 };
