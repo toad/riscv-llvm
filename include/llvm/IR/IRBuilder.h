@@ -26,6 +26,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CBindingWrapping.h"
 #include "llvm/Support/ConstantFolder.h"
+#include <cstdio>
 
 namespace llvm {
   class MDNode;
@@ -1075,13 +1076,16 @@ public:
   // FIXME Here because it uses CreateBitCast but should be in IRBuilderBase
   // FIXME Actually it probably shouldn't be here at all? Consider moving...
   Value *CreateRISCVLoadTaggedReadOnly(Value *OPtr) {
+    printf("Creating RISCVLoadTaggedReadOnly...\n");
     assert(isa<PointerType>(OPtr->getType()) &&
            "ltag only applies to pointers.");
     Value *Ptr = getCastedInt8PtrValue(OPtr); // FIXME consider int64 ptr
     Value *Ops[] = { Ptr };
     Module *M = BB->getParent()->getParent();
     Value *fn = lazyGetRISCVLoadTaggedReadOnly(M);
+    printf("Creating call to RRISCVLoadTaggedReadOnly...\n");
     createCallHelper(fn, Ops, this);
+    printf("Creating final load...\n");
     return CreateLoad(OPtr);
   }
 
