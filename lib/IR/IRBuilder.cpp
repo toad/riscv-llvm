@@ -167,9 +167,10 @@ CallInst *IRBuilderBase::CreateRISCVLoadTag(Value *Ptr) {
   assert(isa<PointerType>(Ptr->getType()) &&
          "ltag only applies to pointers.");
   Ptr = getCastedInt8PtrValue(Ptr); // FIXME consider int64 ptr
+  Value *Ops[] = { Ptr };
   Module *M = BB->getParent()->getParent();
   Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_ltag);
-  return createCallHelper(TheFn, ArrayRef<Value*>(), this);
+  return createCallHelper(TheFn, Ops, this);
 }
 
 CallInst *IRBuilderBase::CreateTrap() {
