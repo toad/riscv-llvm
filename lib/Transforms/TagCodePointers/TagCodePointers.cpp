@@ -21,6 +21,7 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -81,8 +82,10 @@ namespace {
     }
 
     virtual bool runOnBasicBlock(BasicBlock &BB) {
+      bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
-      for(BasicBlock::InstListType::iterator it = BB.getInstList().begin(); 
+      BasicBlock::InstListType& instructions = BB.getInstList();
+      for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
         Instruction& inst = *it;
         //errs() << "Instruction " << inst << "\n";
@@ -115,12 +118,13 @@ namespace {
           }
           if(shouldTag) {
             errs() << "Should tag the store!\n";
-            // FIXME insert stag
+            createSTag(instructions, it, ptr, BB.getParent()->getParent());
+            doneSomething = true;
           }
         }
       }
       getFunctionCheckTagged();
-      return false;
+      return doneSomething;
     }
     
     /* Returns true if the type includes or refers to a function pointer */
@@ -148,6 +152,48 @@ namespace {
       } else if(isa<IntegerType>(type)) {
         return ((IntegerType*)type)->getBitWidth() == 8;
       } else return false;
+    }
+
+    // FIXME lots of duplication getting function-level-or-higher globals here
+    // FIXME duplication with IRBuilder.
+    
+    void createSTag(BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
+      assert(isa<PointerType>(Ptr->getType()) &&
+       "stag only applies to pointers.");
+      LLVMContext &Context = M->getContext();
+      Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
+      Value *TagValue = getInt64(llvm::IRBuilderBase::TAG_CLEAN, Context);
+      Value *Ops[] = { TagValue, Ptr };
+      Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_stag);
+      CallInst *CI = CallInst::Create(TheFn, Ops, "");
+      // Set tag afterwards.
+      instructions.insertAfter(it, CI);
+      TagValue = getInt64(llvm::IRBuilderBase::TAG_NORMAL, Context);
+      Value *NewOps[] = { TagValue, Ptr };
+      CI = CallInst::Create(TheFn, NewOps, "");
+      // Clear tag before.
+      instructions.insert(it, CI);
+    }
+    
+    /// \brief Get a constant 64-bit value.
+    ConstantInt *getInt64(uint64_t C, LLVMContext &Context) {
+      return ConstantInt::get(Type::getInt64Ty(Context), C);
+    }
+
+    Value *getCastedInt8PtrValue(LLVMContext &Context,
+                         BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it,
+                         Value *Ptr) {
+      PointerType *PT = cast<PointerType>(Ptr->getType());
+      if (PT->getElementType()->isIntegerTy(8))
+        return Ptr;
+      
+      // Otherwise, we need to insert a bitcast.
+      PT = Type::getInt8PtrTy(Context, PT->getAddressSpace());
+      BitCastInst *BCI = new BitCastInst(Ptr, PT, "");
+      instructions.insert(it, BCI);
+      return BCI;
     }
     
     Function *getFunctionCheckTagged() {
