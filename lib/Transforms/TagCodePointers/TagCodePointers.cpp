@@ -93,7 +93,7 @@ namespace {
           StoreInst& s = (StoreInst&) inst;
           Value *ptr = s.getPointerOperand();
           Type *type = ptr -> getType();
-          errs() << "Detected a store type: ";
+          errs() << "Detected a store, type: ";
           assert(isa<PointerType>(type) &&
             "parameter must be a pointer.");
           PointerType *t = (PointerType*) type;
@@ -108,6 +108,27 @@ namespace {
           if(shouldTag) {
             errs() << "Should tag the store!\n";
             createSTag(instructions, it, ptr, BB.getParent()->getParent());
+            doneSomething = true;
+          }
+        } else if(LoadInst::classof(&inst)) {
+          LoadInst& l = (LoadInst&) inst;
+          Value *ptr = l.getPointerOperand();
+          Type *type = ptr -> getType();
+          errs() << "Detected a load, type: ";
+          assert(isa<PointerType>(type) &&
+            "parameter must be a pointer.");
+          PointerType *t = (PointerType*) type;
+          t -> print(errs());
+          errs() << "\n";
+          bool shouldTag = shouldTagType(t);
+          if(!shouldTag && isInt8Pointer(t)) {
+            errs() << "Hmmm....\n";
+            assert(isa<Instruction>(ptr));
+            shouldTag = shouldTagBitCastInstruction(ptr);
+          }
+          if(shouldTag) {
+            errs() << "Should tag the store!\n";
+            createCheckTagged(instructions, it, ptr, BB.getParent()->getParent());
             doneSomething = true;
           }
         }
@@ -180,6 +201,18 @@ namespace {
       Value *NewOps[] = { TagValue, Ptr };
       CI = CallInst::Create(TheFn, NewOps, "");
       // Clear tag before.
+      instructions.insert(it, CI);
+    }
+
+    /* Call __llvm_riscv_check_tagged before the current instruction */
+    void createCheckTagged(BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
+      assert(isa<PointerType>(Ptr->getType()) &&
+       "stag only applies to pointers.");
+      LLVMContext &Context = M->getContext();
+      Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
+      Value *Ops[] = { Ptr };
+      CallInst *CI = CallInst::Create(getFunctionCheckTagged(), Ops, "");
       instructions.insert(it, CI);
     }
     
