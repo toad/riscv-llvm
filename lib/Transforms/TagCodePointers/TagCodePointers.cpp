@@ -20,6 +20,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Type.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -95,10 +96,32 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
+          if(shouldTagType(t)) {
+            errs() << "Should tag the store!\n";
+            // FIXME insert stag
+          }
         }
       }
       getFunctionCheckTagged();
       return false;
+    }
+    
+    /* Returns true if the type includes or refers to a function pointer */
+    bool shouldTagType(Type *type) {
+      if(isa<FunctionType>(type)) {
+        return true;
+      } else if(isa<SequentialType>(type)) {
+        return shouldTagType(((SequentialType*)type) -> getElementType());
+      } else if(isa<StructType>(type)) {
+        StructType *s = (StructType*) type;
+        for(StructType::element_iterator it = s -> element_begin();
+            it != s -> element_end();) {
+          if(shouldTagType(*it)) return true;
+        }
+        return false;
+      } else {
+        return false;
+      }
     }
     
     Function *getFunctionCheckTagged() {
