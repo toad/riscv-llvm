@@ -18,6 +18,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/BasicBlock.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -66,25 +67,23 @@ namespace {
   char TagCodePointersBase::ID = 0;
   static RegisterPass<TagCodePointersBase> X("tag-code-pointers-base", "Add helper function for tag-code-pointers");
 
-  struct TagCodePointers : public FunctionPass {
+  struct TagCodePointers : public BasicBlockPass {
     
     Function *FunctionCheckTagged = NULL;
 
     static char ID; // Pass identification, replacement for typeid
-    TagCodePointers() : FunctionPass(ID) {}
+    TagCodePointers() : BasicBlockPass(ID) {}
 
     virtual void getAnalysisUsage(AnalysisUsage &Info) const {
       Info.addRequired<TagCodePointersBase>();
     }
 
-    virtual bool doInitialization(Module &M) {
-      errs() << "TagCodePointers initialising...\n";
-      return false;
-    }
-
-    virtual bool runOnFunction(Function &F) {
-      errs() << "TagCodePointers running on function ";
-      errs().write_escaped(F.getName()) << '\n';
+    virtual bool runOnBasicBlock(BasicBlock &BB) {
+      errs() << "TagCodePointers running on basic block...";
+      for(BasicBlock::InstListType::iterator it = BB.getInstList().begin(); 
+          it != BB.end(); it++) {
+        errs() << "Instruction " << *it << "\n";
+      }
       getFunctionCheckTagged();
       return false;
     }
