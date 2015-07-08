@@ -151,12 +151,12 @@ namespace {
       if(isa<BitCastInst>(ptr)) {
         // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
         // E.g. when setting vptr's.
-        type = ((BitCastInst*)ptr)->getSrcTy();
+        Type *type = ((BitCastInst*)ptr)->getSrcTy();
         errs() << "Type is really: ";
         type -> print(errs());
         errs() << "\n";
-        shouldTag = shouldTagType(type);
-      }
+        return shouldTagType(type);
+      } else return false;
     }
     
     // FIXME lots of duplication getting function-level-or-higher globals here
