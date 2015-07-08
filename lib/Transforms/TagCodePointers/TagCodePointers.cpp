@@ -96,7 +96,24 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
-          if(shouldTagType(t)) {
+          bool shouldTag = shouldTagType(t);
+          if(!shouldTag && isInt8Pointer(t)) {
+            errs() << "Hmmm....\n";
+            assert(isa<Instruction>(ptr));
+            // FIXME could this be outside the current basic block??
+            // FIXME can we tell in advance or do we need a FunctionPass after all???
+            errs() << "Previous instruction: " << *ptr << "\n";
+            if(isa<BitCastInst>(ptr)) {
+              // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
+              // E.g. when setting vptr's.
+              type = ((BitCastInst*)ptr)->getSrcTy();
+              errs() << "Type is really: ";
+              type -> print(errs());
+              errs() << "\n";
+              shouldTag = shouldTagType(type);
+            }
+          }
+          if(shouldTag) {
             errs() << "Should tag the store!\n";
             // FIXME insert stag
           }
@@ -122,6 +139,15 @@ namespace {
       } else {
         return false;
       }
+    }
+    
+    /* LLVM often bitcasts wierd pointers to i8*** etc before storing... */
+    bool isInt8Pointer(Type *type) {
+      if(isa<PointerType>(type)) {
+        return isInt8Pointer(((PointerType*)type) -> getElementType());
+      } else if(isa<IntegerType>(type)) {
+        return ((IntegerType*)type)->getBitWidth() == 8;
+      } else return false;
     }
     
     Function *getFunctionCheckTagged() {
