@@ -19,6 +19,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Type.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -79,10 +80,22 @@ namespace {
     }
 
     virtual bool runOnBasicBlock(BasicBlock &BB) {
-      errs() << "TagCodePointers running on basic block...";
+      errs() << "TagCodePointers running on basic block...\n";
       for(BasicBlock::InstListType::iterator it = BB.getInstList().begin(); 
           it != BB.end(); it++) {
-        errs() << "Instruction " << *it << "\n";
+        Instruction& inst = *it;
+        //errs() << "Instruction " << inst << "\n";
+        if(StoreInst::classof(&inst)) {
+          StoreInst& s = (StoreInst&) inst;
+          Value *ptr = s.getPointerOperand();
+          Type *type = ptr -> getType();
+          errs() << "Detected a store type: ";
+          assert(isa<PointerType>(type) &&
+            "parameter must be a pointer.");
+          PointerType *t = (PointerType*) type;
+          t -> print(errs());
+          errs() << "\n";
+        }
       }
       getFunctionCheckTagged();
       return false;
