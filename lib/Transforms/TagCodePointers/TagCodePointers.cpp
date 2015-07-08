@@ -27,11 +27,11 @@ namespace {
     static char ID; // Pass identification, replacement for typeid
     TagCodePointers() : FunctionPass(ID) {}
 
-    /* Adds __llvm_riscv_load_must_be_read_only */
+    /* Adds __llvm_riscv_check_tagged */
     virtual bool doInitialization(Module &M) {
       LLVMContext &Context = M.getContext();
       // FIXME reconsider linkage - want people to be able to override it?
-      Constant* c = M.getOrInsertFunction("__llvm_riscv_load_must_be_read_only",
+      Constant* c = M.getOrInsertFunction("__llvm_riscv_check_tagged",
                                          Type::getVoidTy(Context), // return type
                                          PointerType::getUnqual(IntegerType::get(Context, 8)),
                                          NULL);
