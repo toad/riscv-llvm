@@ -103,18 +103,7 @@ namespace {
           if(!shouldTag && isInt8Pointer(t)) {
             errs() << "Hmmm....\n";
             assert(isa<Instruction>(ptr));
-            // FIXME could this be outside the current basic block??
-            // FIXME can we tell in advance or do we need a FunctionPass after all???
-            errs() << "Previous instruction: " << *ptr << "\n";
-            if(isa<BitCastInst>(ptr)) {
-              // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
-              // E.g. when setting vptr's.
-              type = ((BitCastInst*)ptr)->getSrcTy();
-              errs() << "Type is really: ";
-              type -> print(errs());
-              errs() << "\n";
-              shouldTag = shouldTagType(type);
-            }
+            shouldTag = shouldTagBitCastInstruction(ptr);
           }
           if(shouldTag) {
             errs() << "Should tag the store!\n";
@@ -126,7 +115,7 @@ namespace {
       getFunctionCheckTagged();
       return doneSomething;
     }
-    
+
     /* Returns true if the type includes or refers to a function pointer */
     bool shouldTagType(Type *type) {
       if(isa<FunctionType>(type)) {
@@ -154,9 +143,27 @@ namespace {
       } else return false;
     }
 
+    /** Common idiom in generated IR: Bitcast before store. */
+    bool shouldTagBitCastInstruction(Value *ptr) {
+      // FIXME could this be outside the current basic block??
+      // FIXME can we tell in advance or do we need a FunctionPass after all???
+      errs() << "Previous instruction: " << *ptr << "\n";
+      if(isa<BitCastInst>(ptr)) {
+        // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
+        // E.g. when setting vptr's.
+        type = ((BitCastInst*)ptr)->getSrcTy();
+        errs() << "Type is really: ";
+        type -> print(errs());
+        errs() << "\n";
+        shouldTag = shouldTagType(type);
+      }
+    }
+    
     // FIXME lots of duplication getting function-level-or-higher globals here
     // FIXME duplication with IRBuilder.
     
+    /* Insert stag(ptr, TAG_NORMAL) before the current instruction and 
+     * stag(ptr, TAG_CLEAN) after it. */
     void createSTag(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
       assert(isa<PointerType>(Ptr->getType()) &&
