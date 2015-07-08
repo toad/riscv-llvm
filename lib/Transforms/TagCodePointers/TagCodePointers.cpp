@@ -56,6 +56,10 @@ namespace {
       errs() << "TagCodePointersBase added function\n";
       return true;
     }
+    
+    Function* getFunctionCheckTagged() {
+      return FunctionCheckTagged;
+    }
 
   };
 
@@ -63,6 +67,8 @@ namespace {
   static RegisterPass<TagCodePointersBase> X("tag-code-pointers-base", "Add helper function for tag-code-pointers");
 
   struct TagCodePointers : public FunctionPass {
+    
+    Function *FunctionCheckTagged = NULL;
 
     static char ID; // Pass identification, replacement for typeid
     TagCodePointers() : FunctionPass(ID) {}
@@ -79,9 +85,16 @@ namespace {
     virtual bool runOnFunction(Function &F) {
       errs() << "TagCodePointers running on function ";
       errs().write_escaped(F.getName()) << '\n';
+      getFunctionCheckTagged();
       return false;
     }
-
+    
+    Function *getFunctionCheckTagged() {
+      if(FunctionCheckTagged) return FunctionCheckTagged;
+      FunctionCheckTagged = getAnalysis<TagCodePointersBase>().getFunctionCheckTagged();
+      errs() << "TagCodePointers got " << FunctionCheckTagged << "\n";
+      return FunctionCheckTagged;
+    }
   };
   
   char TagCodePointers::ID = 0;
