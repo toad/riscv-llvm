@@ -27,6 +27,8 @@ namespace {
     static char ID; // Pass identification, replacement for typeid
     TagCodePointers() : FunctionPass(ID) {}
 
+    Function* FunctionCheckTagged = NULL;
+
     /* Adds __llvm_riscv_check_tagged */
     virtual bool doInitialization(Module &M) {
       LLVMContext &Context = M.getContext();
@@ -50,6 +52,7 @@ namespace {
       builder.SetInsertPoint(onNotTagged);
       builder.CreateTrap();
       builder.CreateRetVoid(); // FIXME Needs a terminal?
+      FunctionCheckTagged = f;
       return true;
     }
 
