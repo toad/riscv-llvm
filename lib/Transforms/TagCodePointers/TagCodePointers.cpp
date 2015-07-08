@@ -23,14 +23,14 @@
 using namespace llvm;
 
 namespace {
-  struct TagCodePointers : public FunctionPass {
+  struct TagCodePointersBase : public ModulePass {
     static char ID; // Pass identification, replacement for typeid
-    TagCodePointers() : FunctionPass(ID) {}
+    TagCodePointersBase() : ModulePass(ID) {}
 
     Function* FunctionCheckTagged = NULL;
 
     /* Adds __llvm_riscv_check_tagged */
-    virtual bool doInitialization(Module &M) {
+    virtual bool runOnModule(Module &M) {
       LLVMContext &Context = M.getContext();
       // FIXME reconsider linkage - want people to be able to override it?
       Constant* c = M.getOrInsertFunction("__llvm_riscv_check_tagged",
@@ -53,7 +53,27 @@ namespace {
       builder.CreateTrap();
       builder.CreateRetVoid(); // FIXME Needs a terminal?
       FunctionCheckTagged = f;
+      errs() << "TagCodePointersBase added function\n";
       return true;
+    }
+
+  };
+
+  char TagCodePointersBase::ID = 0;
+  static RegisterPass<TagCodePointersBase> X("tag-code-pointers-base", "Add helper function for tag-code-pointers");
+
+  struct TagCodePointers : public FunctionPass {
+
+    static char ID; // Pass identification, replacement for typeid
+    TagCodePointers() : FunctionPass(ID) {}
+
+    virtual void getAnalysisUsage(AnalysisUsage &Info) const {
+      Info.addRequired<TagCodePointersBase>();
+    }
+
+    virtual bool doInitialization(Module &M) {
+      errs() << "TagCodePointers initialising...\n";
+      return false;
     }
 
     virtual bool runOnFunction(Function &F) {
@@ -61,10 +81,10 @@ namespace {
       errs().write_escaped(F.getName()) << '\n';
       return false;
     }
+
   };
+  
+  char TagCodePointers::ID = 0;
+  static RegisterPass<TagCodePointers> Y("tag-code-pointers", "Tag code pointers (LowRISC control flow protection)");
 }
-
-char TagCodePointers::ID = 0;
-static RegisterPass<TagCodePointers> X("tag-code-pointers", "Tag code pointers (LowRISC)");
-
 
