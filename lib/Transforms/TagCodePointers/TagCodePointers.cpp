@@ -182,8 +182,7 @@ namespace {
     // FIXME lots of duplication getting function-level-or-higher globals here
     // FIXME duplication with IRBuilder.
     
-    /* Insert stag(ptr, TAG_NORMAL) before the current instruction and 
-     * stag(ptr, TAG_CLEAN) after it. */
+    /* Insert stag(ptr, TAG_CLEAN) after the current instruction. */
     void createSTag(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
       assert(isa<PointerType>(Ptr->getType()) &&
@@ -196,11 +195,6 @@ namespace {
       CallInst *CI = CallInst::Create(TheFn, Ops, "");
       // Set tag afterwards.
       instructions.insertAfter(it, CI);
-      TagValue = getInt64(llvm::IRBuilderBase::TAG_NORMAL, Context);
-      Value *NewOps[] = { TagValue, Ptr };
-      CI = CallInst::Create(TheFn, NewOps, "");
-      // Clear tag before.
-      instructions.insert(it, CI);
     }
 
     /* Call __llvm_riscv_check_tagged before the current instruction */
