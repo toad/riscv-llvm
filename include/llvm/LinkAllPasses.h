@@ -58,6 +58,7 @@ namespace {
       (void) llvm::createTypeBasedAliasAnalysisPass();
       (void) llvm::createBlockPlacementPass();
       (void) llvm::createBoundsCheckingPass();
+      (void) llvm::createLowRISCTagCodePointersPass();
       (void) llvm::createBreakCriticalEdgesPass();
       (void) llvm::createCallGraphPrinterPass();
       (void) llvm::createCallGraphViewerPass();
