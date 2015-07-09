@@ -251,5 +251,12 @@ namespace {
   
   char TagCodePointers::ID = 0;
   static RegisterPass<TagCodePointers> Y("tag-code-pointers", "Tag code pointers (LowRISC control flow protection)");
+
+}
+
+namespace llvm {
+  BasicBlockPass* createLowRISCTagCodePointersPass() {
+    return new TagCodePointers();
+  }
 }
 

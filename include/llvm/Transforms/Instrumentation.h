@@ -20,6 +20,7 @@ namespace llvm {
 
 class ModulePass;
 class FunctionPass;
+class BasicBlockPass;
 
 // Insert edge profiling instrumentation
 ModulePass *createEdgeProfilerPass();
@@ -77,6 +78,9 @@ FunctionPass *createThreadSanitizerPass(StringRef BlacklistFile = StringRef());
 // BoundsChecking - This pass instruments the code to perform run-time bounds
 // checking on loads, stores, and other memory intrinsics.
 FunctionPass *createBoundsCheckingPass();
+
+// LowRISC tagged memory passes.
+BasicBlockPass *createLowRISCTagCodePointersPass();
 
 } // End llvm namespace
 
