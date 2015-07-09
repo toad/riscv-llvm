@@ -100,9 +100,8 @@ namespace {
           t -> print(errs());
           errs() << "\n";
           bool shouldTag = shouldTagType(t);
-          if(!shouldTag && isInt8Pointer(t)) {
+          if(!shouldTag && isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
-            assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
           if(shouldTag) {
@@ -121,7 +120,7 @@ namespace {
           t -> print(errs());
           errs() << "\n";
           bool shouldTag = shouldTagType(t);
-          if(!shouldTag && isInt8Pointer(t)) {
+          if(!shouldTag && isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
