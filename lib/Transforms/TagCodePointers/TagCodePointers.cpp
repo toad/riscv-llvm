@@ -63,6 +63,11 @@ namespace {
       builder.SetInsertPoint(onNotTagged);
       builder.CreateTrap();
       builder.CreateRetVoid(); // FIXME Needs a terminal?
+      // FIXME add argument attribute NonNull, Dereferenceable to pointer.
+      f -> addFnAttr(Attribute::AlwaysInline);
+      f -> addFnAttr(Attribute::NoCapture);
+      f -> addFnAttr(Attribute::ReadOnly);
+
       FunctionCheckTagged = f;
       errs() << "TagCodePointersBase added function\n";
       return true;
