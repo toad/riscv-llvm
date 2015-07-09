@@ -22,6 +22,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Intrinsics.h"
+#include "llvm/IR/GlobalValue.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
 using namespace llvm;
@@ -37,11 +38,17 @@ namespace {
     virtual bool runOnModule(Module &M) {
       LLVMContext &Context = M.getContext();
       // FIXME reconsider linkage - want people to be able to override it?
-      Constant* c = M.getOrInsertFunction("__llvm_riscv_check_tagged",
-                                         Type::getVoidTy(Context), // return type
-                                         PointerType::getUnqual(IntegerType::get(Context, 8)),
-                                         NULL);
-      Function *f = cast<Function> (c);
+      AttributeSet fnAttributes;
+      Function *f = M.getFunction("__llvm_riscv_check_tagged");
+      if(f) {
+        FunctionCheckTagged = f;
+        return false;
+      }
+      Type *params = { PointerType::getUnqual(IntegerType::get(Context, 8)) };
+      FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
+                                             false);
+      f = Function::Create(type, GlobalValue::LinkOnceODRLinkage,
+                           "__llvm_riscv_check_tagged", &M);
       Function::arg_iterator args = f->arg_begin();
       Value *ptr = args++;
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
