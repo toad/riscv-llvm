@@ -300,6 +300,7 @@ RISCVFrameLowering::restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
   const RISCVInstrInfo &TII = (RISCVInstrInfo&) *MF->getTarget().getInstrInfo();
   for (unsigned i = 0, e = CSI.size(); i != e; ++i) {
     unsigned Reg = CSI[i].getReg();
+    errs() << "Un-spilling callee-saved register " << Reg << "\n";
     const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
     TII.loadRegFromStackSlot(MBB, I, Reg,
                              CSI[i].getFrameIdx(),
