@@ -286,6 +286,39 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
   return true;
 }
 
+bool 
+RISCVFrameLowering::restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
+                                                MachineBasicBlock::iterator I,
+                                                const std::vector<CalleeSavedInfo> &CSI,
+                                                const TargetRegisterInfo *TRI) const {
+  // Overridden so we can untag.
+  bool AtStart = I == MBB.begin();
+  MachineBasicBlock::iterator BeforeI = I;
+  if (!AtStart)
+    --BeforeI;
+  MachineFunction *MF = MBB.getParent();
+  const RISCVInstrInfo &TII = (RISCVInstrInfo&) *MF->getTarget().getInstrInfo();
+  for (unsigned i = 0, e = CSI.size(); i != e; ++i) {
+    unsigned Reg = CSI[i].getReg();
+    const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
+    TII.loadRegFromStackSlot(MBB, I, Reg,
+                             CSI[i].getFrameIdx(),
+                             RC, TRI);
+    assert(I != MBB.begin() &&
+           "loadRegFromStackSlot didn't insert any code!");
+    // Insert in reverse order.  loadRegFromStackSlot can insert
+    // multiple instructions.
+    if (AtStart)
+      I = MBB.begin();
+    else {
+      I = BeforeI;
+      ++I;
+    }
+  }
+  return true;
+}
+
+
 bool
 RISCVFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
   const MachineFrameInfo *MFI = MF.getFrameInfo();
