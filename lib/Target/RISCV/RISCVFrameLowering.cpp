@@ -309,16 +309,6 @@ RISCVFrameLowering::restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
       TII.tagStackSlot(MBB, I, RISCV::zero_64, false,
                             CSI[i].getFrameIdx(), RC, TRI);
     }
-    assert(I != MBB.begin() &&
-           "loadRegFromStackSlot didn't insert any code!");
-    // Insert in reverse order.  loadRegFromStackSlot can insert
-    // multiple instructions.
-    if (AtStart)
-      I = MBB.begin();
-    else {
-      I = BeforeI;
-      ++I;
-    }
   }
   return true;
 }
