@@ -44,9 +44,14 @@ namespace {
         FunctionCheckTagged = f;
         return false;
       }
-      Type *params = { PointerType::getUnqual(IntegerType::get(Context, 8)) };
+      errs() << "Trying to create __llvm_riscv_check_tagged...\n";
+      Type *int_type = IntegerType::get(Context, 8);
+      errs() << "Trying to create pointer type...\n";
+      Type *params = { PointerType::getUnqual(int_type) };
+      errs() << "Got type for parameters\n";
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
                                              false);
+      errs() << "Got type for function\n";
       f = Function::Create(type, GlobalValue::LinkOnceODRLinkage,
                            "__llvm_riscv_check_tagged", &M);
       Function::arg_iterator args = f->arg_begin();

@@ -17,6 +17,7 @@
 #include "llvm/IR/Module.h"
 #include <algorithm>
 #include <cstdarg>
+#include "llvm/Support/raw_ostream.h"
 using namespace llvm;
 
 //===----------------------------------------------------------------------===//
@@ -732,14 +733,23 @@ bool VectorType::isValidElementType(Type *ElemTy) {
 //===----------------------------------------------------------------------===//
 
 PointerType *PointerType::get(Type *EltTy, unsigned AddressSpace) {
+  errs() << "Creating a pointer\n";
+  errs() << "Argument 1: " << EltTy << "\n";
+  errs() << "Argument 2: " << AddressSpace << "\n";
   assert(EltTy && "Can't get a pointer to <null> type!");
+  errs() << "Still here after null check\n";
   assert(isValidElementType(EltTy) && "Invalid type for pointer element!");
+  errs() << "Still here after validity check\n";
   
-  LLVMContextImpl *CImpl = EltTy->getContext().pImpl;
-  
+  LLVMContext &C = EltTy->getContext();
+  errs() << "Got context " << &C << "\n";
+  LLVMContextImpl *CImpl = C.pImpl;
+  errs() << "Got context impl " << CImpl << "\n";  
+
   // Since AddressSpace #0 is the common case, we special case it.
   PointerType *&Entry = AddressSpace == 0 ? CImpl->PointerTypes[EltTy]
      : CImpl->ASPointerTypes[std::make_pair(EltTy, AddressSpace)];
+  errs() << "Got pointer type " << Entry << "\n";
 
   if (Entry == 0)
     Entry = new (CImpl->TypeAllocator) PointerType(EltTy, AddressSpace);
