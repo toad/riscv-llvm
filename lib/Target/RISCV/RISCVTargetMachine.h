@@ -64,6 +64,9 @@ public:
     LLVM_OVERRIDE {
     return &TSInfo;
   }
+  virtual bool hasTaggedMemory() const {
+    return Subtarget.hasTM();
+  }
 
   // Override LLVMTargetMachine
   virtual TargetPassConfig *createPassConfig(PassManagerBase &PM) LLVM_OVERRIDE;
