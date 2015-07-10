@@ -21,6 +21,7 @@ class RISCVFrameLowering : public TargetFrameLowering {
 protected:
   const RISCVTargetMachine &TM;
   const RISCVSubtarget &STI;
+  const bool tagSpilledRegisters;
 
 public:
   RISCVFrameLowering(const RISCVTargetMachine &tm,

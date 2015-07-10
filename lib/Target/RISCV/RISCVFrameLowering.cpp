@@ -16,6 +16,8 @@
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/RegisterScavenging.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 
@@ -23,7 +25,7 @@ RISCVFrameLowering::RISCVFrameLowering(const RISCVTargetMachine &tm,
                                            const RISCVSubtarget &sti)
   : TargetFrameLowering(TargetFrameLowering::StackGrowsDown, 16, 0),
     TM(tm),
-    STI(sti) {}
+    STI(sti), tagSpilledRegisters(sti.hasTM()) {}
 /*   RISCV stack frames look like:
 
     +-------------------------------+
@@ -119,10 +121,13 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF) const {
   const std::vector<CalleeSavedInfo> &CSI = MFI->getCalleeSavedInfo();
 
   if (CSI.size()) {
+    if(tagSpilledRegisters) ++MBBI;
     // Find the instruction past the last instruction that saves a callee-saved
     // register to the stack.
-    for (unsigned i = 0; i < CSI.size(); ++i)
+    for (unsigned i = 0; i < CSI.size(); ++i) {
+      if(tagSpilledRegisters) ++MBBI;
       ++MBBI;
+    }
 
     // Iterate over list of callee-saved registers and emit .cfi_offset
     // directives.
@@ -200,8 +205,10 @@ void RISCVFrameLowering::emitEpilogue(MachineFunction &MF,
     // Find the first instruction that restores a callee-saved register.
     MachineBasicBlock::iterator I = MBBI;
 
-    for (unsigned i = 0; i < MFI->getCalleeSavedInfo().size(); ++i)
+    for (unsigned i = 0; i < MFI->getCalleeSavedInfo().size(); ++i) {
       --I;
+      if(tagSpilledRegisters) --I;
+    }
 
     // Insert instruction "move $sp, $fp" at this location.
     BuildMI(MBB, I, dl, TII.get(ADDu), SP).addReg(FP).addReg(ZERO);
@@ -212,8 +219,10 @@ void RISCVFrameLowering::emitEpilogue(MachineFunction &MF,
 
     // Find first instruction that restores a callee-saved register.
     MachineBasicBlock::iterator I = MBBI;
-    for (unsigned i = 0; i < MFI->getCalleeSavedInfo().size(); ++i)
+    for (unsigned i = 0; i < MFI->getCalleeSavedInfo().size(); ++i) {
       --I;
+      if(tagSpilledRegisters) --I;
+    }
 
     // Insert instructions that restore eh data registers.
     for (int J = 0; J < 4; ++J) {
@@ -239,7 +248,14 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
                           const TargetRegisterInfo *TRI) const {
   MachineFunction *MF = MBB.getParent();
   MachineBasicBlock *EntryBlock = MF->begin();
-  const TargetInstrInfo &TII = *MF->getTarget().getInstrInfo();
+  const RISCVInstrInfo &TII = (RISCVInstrInfo&) *MF->getTarget().getInstrInfo();
+
+  if(tagSpilledRegisters && CSI.size()) {
+    DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+    // Put the value we want to tag with into t0 (temporary, saved by the caller if necessary).
+    BuildMI(MBB, MI, DL, TII.get(RISCV::ADDIW), RISCV::t0).
+      addReg(RISCV::zero).addImm(IRBuilderBase::TAG_READ_ONLY);
+  }
 
   for (unsigned i = 0, e = CSI.size(); i != e; ++i) {
     // Add the callee-saved register as live-in. Do not add if the register is
@@ -258,6 +274,13 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
     const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
     TII.storeRegToStackSlot(*EntryBlock, MI, Reg, IsKill,
                             CSI[i].getFrameIdx(), RC, TRI);
+    if(tagSpilledRegisters) {
+      // We didn't allocate t0. It will be reused, we don't need to kill it.
+      // FIXME REVIEW REGISTER USAGE
+      TII.tagStackSlot(*EntryBlock, MI, RISCV::t0_64, false,
+                            CSI[i].getFrameIdx(), RC, TRI);
+    }
+    errs() << "Spilling callee-saved register " << Reg << "\n";
   }
 
   return true;
