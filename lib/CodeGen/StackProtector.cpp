@@ -54,6 +54,9 @@ namespace {
     /// times.
     SmallPtrSet<const PHINode*, 16> VisitedPHIs;
 
+    /// True to use RISCV stag/ltag intrinsics rather than checking the canary value.
+    bool useSTag;
+
     /// InsertStackProtectors - Insert code into the prologue and epilogue of
     /// the function.
     ///
@@ -105,6 +108,7 @@ FunctionPass *llvm::createStackProtectorPass(const TargetLoweringBase *tli) {
 }
 
 bool StackProtector::runOnFunction(Function &Fn) {
+  if(TLI) useSTag = TLI->getTargetMachine().hasTaggedMemory();
   F = &Fn;
   M = F->getParent();
   DT = getAnalysisIfAvailable<DominatorTree>();
