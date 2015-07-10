@@ -28,9 +28,11 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Target/TargetLowering.h"
+#include "llvm/Support/raw_ostream.h"
 using namespace llvm;
 
 STATISTIC(NumFunProtected, "Number of functions protected");
@@ -81,6 +83,8 @@ namespace {
     /// RequiresStackProtector - Check whether or not this function needs a
     /// stack protector based upon the stack protector level.
     bool RequiresStackProtector();
+
+    static ConstantInt *getInt64(uint64_t C, LLVMContext &Context);
   public:
     static char ID;             // Pass identification, replacement for typeid.
     StackProtector() : FunctionPass(ID), TLI(0) {
@@ -262,92 +266,118 @@ bool StackProtector::RequiresStackProtector() {
 bool StackProtector::InsertStackProtectors() {
   BasicBlock *FailBB = 0;       // The basic block to jump to if check fails.
   BasicBlock *FailBBDom = 0;    // FailBB's dominator.
-  AllocaInst *AI = 0;           // Place on stack that stores the stack guard.
+  Instruction *AI = 0;           // Place on stack that stores the stack guard.
   Value *StackGuardVar = 0;  // The stack guard variable.
 
   for (Function::iterator I = F->begin(), E = F->end(); I != E; ) {
     BasicBlock *BB = I++;
     ReturnInst *RI = dyn_cast<ReturnInst>(BB->getTerminator());
     if (!RI) continue;
+    LLVMContext &Context = RI->getContext();
 
     if (!FailBB) {
       // Insert code into the entry block that stores the __stack_chk_guard
       // variable onto the stack:
       //
-      //   entry:
-      //     StackGuardSlot = alloca i8*
-      //     StackGuard = load __stack_chk_guard
-      //     call void @llvm.stackprotect.create(StackGuard, StackGuardSlot)
-      //
       PointerType *PtrTy = Type::getInt8PtrTy(RI->getContext());
-      unsigned AddressSpace, Offset;
-      if (TLI->getStackCookieLocation(AddressSpace, Offset)) {
-        Constant *OffsetVal =
-          ConstantInt::get(Type::getInt32Ty(RI->getContext()), Offset);
-
-        StackGuardVar = ConstantExpr::getIntToPtr(OffsetVal,
-                                      PointerType::get(PtrTy, AddressSpace));
-      } else {
-        StackGuardVar = M->getOrInsertGlobal("__stack_chk_guard", PtrTy);
-      }
-
       BasicBlock &Entry = F->getEntryBlock();
       Instruction *InsPt = &Entry.front();
 
       AI = new AllocaInst(PtrTy, "StackGuardSlot", InsPt);
-      LoadInst *LI = new LoadInst(StackGuardVar, "StackGuard", false, InsPt);
+      if(useSTag) {
+        errs() << "Inserting stack guard entry using tagged memory\n";
+        //   entry:
+        //     StackGuardSlot = alloca i8*
+        //     call void @llvm.riscv.stag(StackGuardSlot, READ_ONLY)
 
-      Value *Args[] = { LI, AI };
+        AI = new BitCastInst(AI, PtrTy, "", InsPt); // Cast i8** back to i8*
+
+        Value *TagValue = getInt64(llvm::IRBuilderBase::TAG_READ_ONLY, Context);
+        Value *Args[] = { TagValue, AI };
+        CallInst::
+          Create(Intrinsic::getDeclaration(M, Intrinsic::riscv_stag),
+                 Args, "", InsPt);
+      } else {
+        //   entry:
+        //     StackGuardSlot = alloca i8*
+        //     StackGuard = load __stack_chk_guard
+        //     call void @llvm.stackprotect.create(StackGuard, StackGuardSlot)
+        //
+
+        unsigned AddressSpace, Offset;
+        if (TLI->getStackCookieLocation(AddressSpace, Offset)) {
+          Constant *OffsetVal =
+            ConstantInt::get(Type::getInt32Ty(Context), Offset);
+
+          StackGuardVar = ConstantExpr::getIntToPtr(OffsetVal,
+                                        PointerType::get(PtrTy, AddressSpace));
+        } else {
+          StackGuardVar = M->getOrInsertGlobal("__stack_chk_guard", PtrTy);
+        }
+  
+        LoadInst *LI = new LoadInst(StackGuardVar, "StackGuard", false, InsPt);
+
+        Value *Args[] = { LI, AI };
+        CallInst::
+          Create(Intrinsic::getDeclaration(M, Intrinsic::stackprotector),
+                 Args, "", InsPt);
+
+        // Create the basic block to jump to when the guard check fails.
+        FailBB = CreateFailBB();
+      }
+    }
+
+    if(useSTag) {
+      errs() << "Inserting stack guard exit using tagged memory\n";
+      Value *TagValue = getInt64(llvm::IRBuilderBase::TAG_NORMAL, Context);
+      Value *Args[] = { TagValue, AI };
       CallInst::
-        Create(Intrinsic::getDeclaration(M, Intrinsic::stackprotector),
-               Args, "", InsPt);
+        Create(Intrinsic::getDeclaration(M, Intrinsic::riscv_stag),
+               Args, "", BB->getTerminator());
+    } else {
+      // For each block with a return instruction, convert this:
+      //
+      //   return:
+      //     ...
+      //     ret ...
+      //
+      // into this:
+      //
+      //   return:
+      //     ...
+      //     %1 = load __stack_chk_guard
+      //     %2 = load StackGuardSlot
+      //     %3 = cmp i1 %1, %2
+      //     br i1 %3, label %SP_return, label %CallStackCheckFailBlk
+      //
+      //   SP_return:
+      //     ret ...
+      //
+      //   CallStackCheckFailBlk:
+      //     call void @__stack_chk_fail()
+      //     unreachable
 
-      // Create the basic block to jump to when the guard check fails.
-      FailBB = CreateFailBB();
+      // Split the basic block before the return instruction.
+      BasicBlock *NewBB = BB->splitBasicBlock(RI, "SP_return");
+
+      if (DT && DT->isReachableFromEntry(BB)) {
+        DT->addNewBlock(NewBB, BB);
+        FailBBDom = FailBBDom ? DT->findNearestCommonDominator(FailBBDom, BB) :BB;
+      }
+
+      // Remove default branch instruction to the new BB.
+      BB->getTerminator()->eraseFromParent();
+
+      // Move the newly created basic block to the point right after the old basic
+      // block so that it's in the "fall through" position.
+      NewBB->moveAfter(BB);
+
+      // Generate the stack protector instructions in the old basic block.
+      LoadInst *LI1 = new LoadInst(StackGuardVar, "", false, BB);
+      LoadInst *LI2 = new LoadInst(AI, "", true, BB);
+      ICmpInst *Cmp = new ICmpInst(*BB, CmpInst::ICMP_EQ, LI1, LI2, "");
+      BranchInst::Create(NewBB, FailBB, Cmp, BB);
     }
-
-    // For each block with a return instruction, convert this:
-    //
-    //   return:
-    //     ...
-    //     ret ...
-    //
-    // into this:
-    //
-    //   return:
-    //     ...
-    //     %1 = load __stack_chk_guard
-    //     %2 = load StackGuardSlot
-    //     %3 = cmp i1 %1, %2
-    //     br i1 %3, label %SP_return, label %CallStackCheckFailBlk
-    //
-    //   SP_return:
-    //     ret ...
-    //
-    //   CallStackCheckFailBlk:
-    //     call void @__stack_chk_fail()
-    //     unreachable
-
-    // Split the basic block before the return instruction.
-    BasicBlock *NewBB = BB->splitBasicBlock(RI, "SP_return");
-
-    if (DT && DT->isReachableFromEntry(BB)) {
-      DT->addNewBlock(NewBB, BB);
-      FailBBDom = FailBBDom ? DT->findNearestCommonDominator(FailBBDom, BB) :BB;
-    }
-
-    // Remove default branch instruction to the new BB.
-    BB->getTerminator()->eraseFromParent();
-
-    // Move the newly created basic block to the point right after the old basic
-    // block so that it's in the "fall through" position.
-    NewBB->moveAfter(BB);
-
-    // Generate the stack protector instructions in the old basic block.
-    LoadInst *LI1 = new LoadInst(StackGuardVar, "", false, BB);
-    LoadInst *LI2 = new LoadInst(AI, "", true, BB);
-    ICmpInst *Cmp = new ICmpInst(*BB, CmpInst::ICMP_EQ, LI1, LI2, "");
-    BranchInst::Create(NewBB, FailBB, Cmp, BB);
   }
 
   // Return if we didn't modify any basic blocks. I.e., there are no return
@@ -358,6 +388,11 @@ bool StackProtector::InsertStackProtectors() {
     DT->addNewBlock(FailBB, FailBBDom);
 
   return true;
+}
+
+/// \brief Get a constant 64-bit value.
+ConstantInt *StackProtector::getInt64(uint64_t C, LLVMContext &Context) {
+  return ConstantInt::get(Type::getInt64Ty(Context), C);
 }
 
 /// CreateFailBB - Create a basic block to jump to when the stack protector
