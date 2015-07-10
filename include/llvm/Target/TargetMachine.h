@@ -280,6 +280,11 @@ public:
                                  bool /*DisableVerify*/ = true) {
     return true;
   }
+
+  /// Does the processor support the tagged memory intrinsics?
+  virtual bool hasTaggedMemory() const {
+    return false;
+  }
 };
 
 /// LLVMTargetMachine - This class describes a target machine that is
