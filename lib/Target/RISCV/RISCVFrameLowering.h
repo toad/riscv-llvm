@@ -21,6 +21,7 @@ class RISCVFrameLowering : public TargetFrameLowering {
 protected:
   const RISCVTargetMachine &TM;
   const RISCVSubtarget &STI;
+  const bool tagSpilledRegisters;
 
 public:
   RISCVFrameLowering(const RISCVTargetMachine &tm,
@@ -44,6 +45,11 @@ public:
                                  MachineBasicBlock::iterator MI,
                                  const std::vector<CalleeSavedInfo> &CSI,
                                  const TargetRegisterInfo *TRI) const;
+
+  bool restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
+                                   MachineBasicBlock::iterator MI,
+                                   const std::vector<CalleeSavedInfo> &CSI,
+                                   const TargetRegisterInfo *TRI) const;
 
   bool hasReservedCallFrame(const MachineFunction &MF) const;
 

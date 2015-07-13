@@ -512,6 +512,18 @@ RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
                     FrameIdx);
 }
 
+void
+RISCVInstrInfo::tagStackSlot(MachineBasicBlock &MBB,
+				      MachineBasicBlock::iterator MBBI,
+				      unsigned SrcReg, bool isKill,
+				      int FrameIdx,
+				      const TargetRegisterClass *RC,
+				      const TargetRegisterInfo *TRI) const {
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  addFrameReference(BuildMI(MBB, MBBI, DL, get(RISCV::STAG))
+		    .addReg(SrcReg, getKillRegState(isKill)), FrameIdx);
+}
+
 bool
 RISCVInstrInfo::expandPostRAPseudo(MachineBasicBlock::iterator MI) const {
   switch (MI->getOpcode()) {
