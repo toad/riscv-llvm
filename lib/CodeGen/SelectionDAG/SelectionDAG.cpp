@@ -3749,7 +3749,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                         SDValue Chain, SDValue Dst,
                                         SDValue Src, uint64_t Size,
                                         unsigned Align,  bool isVol,
-                                        bool AlwaysInline,
+                                        bool AlwaysInline, bool CopyTags,
                                         MachinePointerInfo DstPtrInfo,
                                         MachinePointerInfo SrcPtrInfo) {
   // Turn a memmove of undef to nop.
@@ -3789,8 +3789,10 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
 
+  if(CopyTags && (Align % 8 != 0)) CopyTags = false;
   uint64_t SrcOff = 0, DstOff = 0;
   SmallVector<SDValue, 8> LoadValues;
+  SmallVector<SDValue, 8> LoadTagValues;
   SmallVector<SDValue, 8> LoadChains;
   SmallVector<SDValue, 8> OutChains;
   unsigned NumMemOps = MemOps.size();
@@ -3798,13 +3800,28 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     EVT VT = MemOps[i];
     unsigned VTSize = VT.getSizeInBits() / 8;
     SDValue Value, Store;
-
+    SDValue CopyFrom = getMemBasePlusOffset(Src, SrcOff, DAG);
     Value = DAG.getLoad(VT, dl, Chain,
-                        getMemBasePlusOffset(Src, SrcOff, DAG),
+                        CopyFrom,
                         SrcPtrInfo.getWithOffset(SrcOff), isVol,
                         false, false, SrcAlign);
     LoadValues.push_back(Value);
     LoadChains.push_back(Value.getValue(1));
+    if(CopyTags) {
+      errs() << "Trying to add ltag in memmove...\n";
+      SmallVector<SDValue, 8> Ops;
+      // FIXME LOWRISC: Assume that reads do not invalidate loads, so no dependency.
+      Ops.push_back(Chain); // LTAG depends on original chain but not on load.
+      // FIXME what's the type for?
+      Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_ltag, 
+                                          TLI.getPointerTy()));
+      // Arguments...
+      Ops.push_back(CopyFrom);
+      SDValue TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
+                                     DAG.getVTList(VT), &Ops[0], Ops.size());
+      LoadTagValues.push_back(TagValue);
+      errs() << "Added ltag in memcpy...\n";
+    }
     SrcOff += VTSize;
   }
   Chain = DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
@@ -3815,10 +3832,28 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     unsigned VTSize = VT.getSizeInBits() / 8;
     SDValue Value, Store;
 
+    SDValue CopyTo = getMemBasePlusOffset(Dst, DstOff, DAG);
     Store = DAG.getStore(Chain, dl, LoadValues[i],
-                         getMemBasePlusOffset(Dst, DstOff, DAG),
+                         CopyTo,
                          DstPtrInfo.getWithOffset(DstOff), isVol, false, Align);
-    OutChains.push_back(Store);
+
+    if(CopyTags) {
+      errs() << "Trying to add stag in memmove...\n";
+      SmallVector<SDValue, 8> Ops;
+      Ops.push_back(DAG.getSimpleChain(Store, dl)); // Chain: stag must be after store.
+      // FIXME what's the type for?
+      Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_stag, 
+                                          TLI.getPointerTy()));
+      // Arguments...
+      Ops.push_back(LoadTagValues[i]);
+      Ops.push_back(CopyTo);
+      SDValue TagStore = DAG.getNode(ISD::INTRINSIC_VOID, dl,
+                                     DAG.getVTList(MVT::Other), &Ops[0], Ops.size());
+      OutChains.push_back(TagStore);
+      errs() << "Added stag in memcpy...\n";
+    } else {
+      OutChains.push_back(Store);
+    }
     DstOff += VTSize;
   }
 
@@ -3996,7 +4031,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
     SDValue Result =
       getMemmoveLoadsAndStores(*this, dl, Chain, Dst, Src,
                                ConstantSize->getZExtValue(), Align, isVol,
-                               false, DstPtrInfo, SrcPtrInfo);
+                               false, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }

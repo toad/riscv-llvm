@@ -19,3 +19,9 @@ Object *copyObject(Object *p) {
 	memcpy(q, p, sizeof(Object));
 	return q;
 };
+
+Object *moveObject(Object *p) {
+	Object *q = malloc(sizeof(Object));
+	memmove(q, p, sizeof(Object));
+	return q;
+}

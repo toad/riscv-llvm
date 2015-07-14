@@ -10,3 +10,5 @@ typedef struct {
 Object *createEvilObject();
 
 Object *copyObject(Object *);
+
+Object *moveObject(Object *);
