@@ -5,6 +5,7 @@
 typedef struct {
 	void (*fn)(void);
 	int x;
+	long array[ARRAY_SIZE];
 } Object;
 
 Object *createEvilObject();
