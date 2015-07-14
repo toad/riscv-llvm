@@ -585,6 +585,8 @@ public:
                   SDValue N1, SDValue N2, SDValue N3, SDValue N4,
                   SDValue N5);
 
+  SDValue getSimpleChain(SDValue& Store, DebugLoc dl);
+
   /// getStackArgumentTokenFactor - Compute a TokenFactor to force all
   /// the incoming stack arguments to be loaded from the stack. This is
   /// used in tail call lowering to protect stack arguments from being

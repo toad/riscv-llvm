@@ -51,6 +51,7 @@
 #include "llvm/Target/TargetSelectionDAGInfo.h"
 #include <algorithm>
 #include <cmath>
+#include "llvm/Support/raw_ostream.h"
 using namespace llvm;
 
 /// makeVTList - Return an instance of the SDVTList struct initialized with the
@@ -3590,6 +3591,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                        SDValue Src, uint64_t Size,
                                        unsigned Align, bool isVol,
                                        bool AlwaysInline,
+                                       bool CopyTags,
                                        MachinePointerInfo DstPtrInfo,
                                        MachinePointerInfo SrcPtrInfo) {
   // Turn a memcpy of undef to nop.
@@ -3644,6 +3646,8 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       Align = NewAlign;
     }
   }
+  
+  if(CopyTags && (Align % 8 != 0)) CopyTags = false;
 
   SmallVector<SDValue, 8> OutChains;
   unsigned NumMemOps = MemOps.size();
@@ -3651,7 +3655,8 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
   for (unsigned i = 0; i != NumMemOps; ++i) {
     EVT VT = MemOps[i];
     unsigned VTSize = VT.getSizeInBits() / 8;
-    SDValue Value, Store;
+    SDValue Value, Store, TagValue, TagStore;
+    SDValue& ToPush = CopyTags ? TagStore : Store;
 
     if (VTSize > Size) {
       // Issuing an unaligned load / store pair  that overlaps with the previous
@@ -3684,16 +3689,44 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       // FIXME does the case above also need this?
       EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), VT);
       assert(NVT.bitsGE(VT));
-      Value = DAG.getExtLoad(ISD::EXTLOAD, dl, NVT, Chain,
-                             getMemBasePlusOffset(Src, SrcOff, DAG),
+      SDValue CopyFrom = getMemBasePlusOffset(Src, SrcOff, DAG);
+      Value = DAG.getExtLoad(ISD::EXTLOAD, dl, NVT, Chain, CopyFrom,
                              SrcPtrInfo.getWithOffset(SrcOff), VT, isVol, false,
                              MinAlign(SrcAlign, SrcOff));
-      Store = DAG.getTruncStore(Chain, dl, Value,
-                                getMemBasePlusOffset(Dst, DstOff, DAG),
+      if(CopyTags) {
+        errs() << "Trying to add ltag in memcpy...\n";
+        SmallVector<SDValue, 8> Ops;
+        // FIXME LOWRISC: Assume that reads do not invalidate loads, so no dependency.
+        Ops.push_back(Chain);
+        // FIXME what's the type for?
+        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_ltag, 
+                                            TLI.getPointerTy()));
+        // Arguments...
+        Ops.push_back(CopyFrom);
+        TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
+                         DAG.getVTList(VT), &Ops[0], Ops.size());
+        errs() << "Added ltag in memcpy...\n";
+      }
+      SDValue CopyTo = getMemBasePlusOffset(Dst, DstOff, DAG);
+      Store = DAG.getTruncStore(Chain, dl, Value, CopyTo,
                                 DstPtrInfo.getWithOffset(DstOff), VT, isVol,
                                 false, Align);
+      if(CopyTags) {
+        errs() << "Trying to add stag in memcpy...\n";
+        SmallVector<SDValue, 8> Ops;
+        Ops.push_back(DAG.getSimpleChain(Store, dl)); // Chain: stag must be after store.
+        // FIXME what's the type for?
+        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_stag, 
+                                            TLI.getPointerTy()));
+        // Arguments...
+        Ops.push_back(TagValue);
+        Ops.push_back(CopyTo);
+        TagStore = DAG.getNode(ISD::INTRINSIC_VOID, dl,
+                         DAG.getVTList(MVT::Other), &Ops[0], Ops.size());
+        errs() << "Added stag in memcpy...\n";
+      }
     }
-    OutChains.push_back(Store);
+    OutChains.push_back(ToPush);
     SrcOff += VTSize;
     DstOff += VTSize;
     Size -= VTSize;
@@ -3701,6 +3734,15 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
 
   return DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
                      &OutChains[0], OutChains.size());
+}
+
+SDValue SelectionDAG::getSimpleChain(SDValue& Store, DebugLoc dl) {
+  // FIXME simplify do we really need to create a TokenFactor here for one arg?
+  // FIXME simplify: Is it safe to just pass new SDValue*[] { Store } ?? Or do we have smartpointers etc?
+  SmallVector<SDValue, 8> TagChainArray;
+  TagChainArray.push_back(Store);
+  return getNode(ISD::TokenFactor, dl, MVT::Other,
+                     &TagChainArray[0], TagChainArray.size());
 }
 
 static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
@@ -3885,7 +3927,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
 
     SDValue Result = getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
                                              ConstantSize->getZExtValue(),Align,
-                                isVol, false, DstPtrInfo, SrcPtrInfo);
+                                isVol, false, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
@@ -3905,7 +3947,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
     assert(ConstantSize && "AlwaysInline requires a constant size!");
     return getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
                                    ConstantSize->getZExtValue(), Align, isVol,
-                                   true, DstPtrInfo, SrcPtrInfo);
+                                   true, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
   }
 
   // FIXME: If the memcpy is volatile (isVol), lowering it to a plain libc
