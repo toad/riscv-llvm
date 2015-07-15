@@ -30,6 +30,10 @@ int main() {
 	for(i=1;i<LENGTH;i++) {
 		if(arr[i] != i-1) {
 			printf("Array[%d]=%ld should be %d\n", i, arr[i], i-1);
+			printf("Dump:\n\n");
+			for(i=0;i<LENGTH;i++) {
+				printf("Array[%d] = %ld\n", i, arr[i]);
+			}
 			exit(4);
 		}
 	}
