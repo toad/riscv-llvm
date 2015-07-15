@@ -5,6 +5,7 @@ if ! ./build-and-test.sh; then echo Failed memcpy/memmove test; exit 2; fi
 cd ..
 cd MemmoveOverlap
 if ! ./build-and-test.sh; then echo Failed backwards memmove overlapped tags test; exit 3; fi
+cd ..
 cd MemmoveOverlapForwards
 if ! ./build-and-test.sh; then echo Failed forwards memmove overlapped tags test; exit 3; fi
 echo All tests successful.
