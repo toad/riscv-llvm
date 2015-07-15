@@ -1,0 +1,13 @@
+Tests for tagged memory-based code pointer protection
+-----------------------------------------------------
+
+Note that these tests check both the built-in memcpy/memmove for LLVM, and
+also newlib code.
+
+Memcpy: Tests non-overlapping memcpy and memmove with tags.
+MemmoveOverlap: Tests a single special memmove with tags and overlap.
+- Note that the mem* tests are not intended to exhaustively test memcpy/memmove! There are tests in newlib for that.
+
+StackProtection: Tests LLVM code to protect spilled variables including return address.
+
+VPtrTagging: Tests protection of C++ virtual pointers.
