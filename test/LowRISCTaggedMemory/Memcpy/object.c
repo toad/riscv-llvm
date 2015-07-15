@@ -26,6 +26,7 @@ Object *moveObject(Object *p) {
 	return q;
 }
 
+#if ARRAY_SIZE > 0
 /* Simple checks for memmove basic functionality */
 void fillArray(Object *p) {
 	int i;
@@ -42,4 +43,4 @@ void checkArray(Object *p) {
 		}
 	}
 }
-
+#endif

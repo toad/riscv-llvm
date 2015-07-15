@@ -1,7 +1,7 @@
 #!/bin/bash
 # FIXME Build it all with clang when it works! :(
 rm -f *.s *.ll *.riscv *.bc
-ARRAY_SIZE=10000
+ARRAY_SIZE=${1:-10000}
 for x in object; do
 	echo Building ${x}.c with clang
 	clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I -I $RISCV/riscv64-unknown-elf/include/ -S ${x}.c -emit-llvm -DARRAY_SIZE=$ARRAY_SIZE -o ${x}.ll || exit 2
