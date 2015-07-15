@@ -3820,6 +3820,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       SDValue TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
                                      DAG.getVTList(VT), &Ops[0], Ops.size());
       LoadTagValues.push_back(TagValue);
+      LoadChains.push_back(DAG.getSimpleChain(TagValue,dl));
       errs() << "Added ltag in memcpy...\n";
     }
     SrcOff += VTSize;
