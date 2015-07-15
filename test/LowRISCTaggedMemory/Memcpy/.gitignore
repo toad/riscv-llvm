@@ -1,2 +1,4 @@
 *.s
 *.riscv
+*.ll
+*.bc
