@@ -25,3 +25,21 @@ Object *moveObject(Object *p) {
 	memmove(q, p, sizeof(Object));
 	return q;
 }
+
+/* Simple checks for memmove basic functionality */
+void fillArray(Object *p) {
+	int i;
+	for(i=0;i<ARRAY_SIZE;i++)
+		p->array[i] = i;
+}
+
+void checkArray(Object *p) {
+	int i;
+	for(i=0;i<ARRAY_SIZE;i++) {
+		if(p->array[i] != i) {
+			printf("ERROR: Array does not contain sequence stored!\n");
+			exit(1);
+		}
+	}
+}
+
