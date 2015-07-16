@@ -21,6 +21,7 @@
 #include "tag.h"
 
 int main(int argc, char **argv) {
+	printf("Testing memcpy/memmove with function pointers for ARRAY_SIZE size...\n");
 	Object *p = createEvilObject();
 	fillArray(p);
 	printf("Calling function on original object...\n");
