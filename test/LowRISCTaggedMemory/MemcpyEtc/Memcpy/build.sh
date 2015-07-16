@@ -25,6 +25,13 @@ case $1 in
 		build=gcc
 		VARIABLES="$VARIABLES"
 		;;
+	gcc-linux)
+		# Build with GCC for a booted Linux system, with fake tags.
+		# Should succeed.
+		# Harder to run.
+		build=gcc-linux
+		VARIABLES="$VARIABLES -DFAKE_TAGS"
+		;;
 	*)
 		echo "./build.sh BUILDTYPE"
 		echo "Where BUILDTYPE is:"
@@ -46,6 +53,9 @@ for x in object tag; do
 	"gcc")
 		riscv64-unknown-elf-gcc -O0 -I $RISCV/riscv-linux/include/ -S ${x}.c $VARIABLES -o ${x}.s || exit 2
 		;;
+	"gcc-linux")
+		# Do nothing.
+		;;
 	*)
 		exit 5
 	esac
@@ -56,7 +66,10 @@ for main in main*.c; do
 	"gcc")
 		echo Building $main with gcc
 		riscv64-unknown-elf-gcc -fpermissive -O0 -I $RISCV/riscv64-unknown-elf/include/ -S $VARIABLES $main -o ${main}.s || exit 1
-	;;
+		;;
+	"gcc-linux")
+		# Do nothing.
+		;;
 	"clang")
 		echo Building $main with clang
 		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I. -I $RISCV/riscv64-unknown-elf/include/ -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
@@ -68,6 +81,11 @@ for main in main*.c; do
 		;;
 	esac
 	echo Assembling and linking with gcc
-	riscv64-unknown-elf-g++ -o test-${main}.${build}.riscv *.s || exit 3
+	if test "$build" == "gcc-linux"
+	then
+		riscv-linux-gcc -static -o test-${main}.${build}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c tag.c || exit 3
+	else
+		riscv64-unknown-elf-g++ -o test-${main}.${build}.riscv *.s || exit 3
+	fi
 	echo Successfully built test-${main}.${build}.riscv
 done
