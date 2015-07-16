@@ -43,4 +43,5 @@ int main(int argc, char **argv) {
 #endif
 	r->fn();
 	printf("Success!\n");
+	return 0;
 }
