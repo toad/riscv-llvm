@@ -2,7 +2,7 @@
 build=${1:-clang}
 rm -f *.s *.ll *.riscv *.bc
 ARRAY_SIZE=${1:-10000}
-for x in object; do
+for x in object tag; do
 	case "$build" in
 	"clang")
 		echo Building ${x}.c with clang
