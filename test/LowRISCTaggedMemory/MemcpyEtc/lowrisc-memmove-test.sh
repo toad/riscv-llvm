@@ -1,4 +1,5 @@
 #!/bin/bash
+OWD=$(pwd)
 BUILDWITH=${1:-clang}
 TMP=$(mktemp -d)
 cd $TMP
@@ -12,8 +13,19 @@ case "$BUILDWITH" in
 		echo Building with GCC
 		riscv64-unknown-elf-gcc -O0 -I -I $RISCV/riscv64-unknown-elf/include/ -S memmove1.c -o memmove1.s
 	;;
+	"gcc-linux")
+		echo Building with GCC for booted Linux
+		riscv-linux-gcc -O0 -I $RISCV/riscv-linux/include/ -static memmove1.c -o memmove1.riscv.linux
+		echo Now run memmove1.riscv.linux in a booted kernel
+		cp memmove1.riscv.linux $OWD
+		cd $OWD
+		rm -Rf $TMP
+		exit 3
+	;;
 	*)
 		exit 2
 esac
 riscv64-unknown-elf-gcc memmove1.s -o memmove1.riscv
 if spike pk memmove1.riscv | grep Success 2>&1; then echo Successful test; rm -Rf $TMP; else echo Failure; spike pk memmove1.riscv; exit 1; fi
+cd $OWD
+rm -Rf $TMP
