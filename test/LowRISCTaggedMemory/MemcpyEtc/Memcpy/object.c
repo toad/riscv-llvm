@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "object.h"
 #include "tag.h"
 
@@ -45,6 +46,9 @@ void checkArray(Object *p) {
 			printf("ERROR: Array does not contain sequence stored!\n");
 			exit(1);
 		}
+#ifndef NO_TAGS
+		assert(load_tag(&(p->array[i])) == 0);
+#endif
 	}
 }
 #endif
