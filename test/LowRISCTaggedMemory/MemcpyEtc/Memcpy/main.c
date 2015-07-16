@@ -21,7 +21,15 @@
 #include "tag.h"
 
 int main(int argc, char **argv) {
-	printf("Testing memcpy/memmove with function pointers for ARRAY_SIZE size...\n");
+	printf("Testing memcpy/memmove with function pointers for array size ");
+	printf("%d", ARRAY_SIZE);
+#ifdef NO_TAGS
+	printf(" (no tags)");
+#endif
+#ifdef FAKE_TAGS
+	printf(" (fake tags)");
+#endif
+	printf("...\n");
 	Object *p = createEvilObject();
 	fillArray(p);
 	printf("Calling function on original object...\n");
