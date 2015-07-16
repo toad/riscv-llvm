@@ -1,15 +1,38 @@
 #!/bin/bash
+# $1 = compiler type
+# $2 = array size
+test_success()
+{
+	if ! ./build.sh $1 $2 > /dev/null 2>&1
+	then echo Could not build with $1 $2; exit 1; fi
+	if ! spike pk test-main.c.*.riscv | grep Success > /dev/null 2>&1
+	then
+		echo Test failed for $1 $2
+		spike pk test-main.c.*.riscv
+		exit 2
+	fi
+}
+
+test_failure() {
+	if ! ./build.sh $1 $2 > /dev/null 2>&1
+	then echo Could not build with $1 $2; exit 1; fi
+	if spike pk test-main.c.*.riscv | grep Success > /dev/null 2>&1
+	then
+		echo "Test succeeded for $1 $2 should have failed"
+		spike pk test-main.c.*.riscv
+		exit 3
+	fi
+}
+
 for x in $(seq 0 1000)
 do
 	echo Testing non-overlapping memmove and memcpy with size $x
-#	./build.sh gcc $x > /dev/null 2>&1 || exit 1
-#	if ! spike pk test-main.c.gcc.riscv | grep Success > /dev/null;
-#	then echo Failed with GCC with size $x; fi # Keep going
-	./build.sh clang $x > /dev/null 2>&1 || exit 1
-	if ! spike pk test-main.c.clang.riscv | grep Success > /dev/null;
-	then
-		spike pk test-main.c.clang.riscv
-		echo Failed with Clang with size $x
-		exit 2
-	fi
+	echo "Testing GCC code ignoring tags"
+	test_success gcc-no-tags $x
+	echo 'Testing mem* preserves tags with GCC'
+	test_success gcc-force-tags $x
+	echo 'Testing clang sets and preserves tags'
+	test_success clang $x
+	echo 'Testing gcc does not set tags and hence fails'
+	test_failure gcc-fail-tags $x
 done

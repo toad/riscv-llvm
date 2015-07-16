@@ -1,5 +1,5 @@
 #!/bin/bash
-ARRAY_SIZE=${1:-10000}
+ARRAY_SIZE=${2:-10000}
 VARIABLES="-DARRAY_SIZE=$ARRAY_SIZE"
 case $1 in
 	clang)
