@@ -51,7 +51,7 @@ for x in object tag; do
 		llc -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 		;;
 	"gcc")
-		riscv64-unknown-elf-gcc -O0 -I $RISCV/riscv-linux/include/ -S ${x}.c $VARIABLES -o ${x}.s || exit 2
+		riscv64-unknown-elf-gcc -O0 -I $RISCV/riscv64-unknown-elf/include/ -S ${x}.c $VARIABLES -o ${x}.s || exit 2
 		;;
 	"gcc-linux")
 		# Do nothing.
@@ -85,7 +85,7 @@ for main in main*.c; do
 	then
 		riscv-linux-gcc -static -o test-${main}.$1.${ARRAY_SIZE}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c tag.c || exit 3
 	else
-		riscv64-unknown-elf-g++ -o test-${main}.$1.${ARRAY_SIZE}.riscv *.s || exit 3
+		riscv64-unknown-elf-gcc -o test-${main}.$1.${ARRAY_SIZE}.riscv *.s || exit 3
 	fi
 	echo Successfully built test-${main}.$1.${ARRAY_SIZE}.riscv
 done
