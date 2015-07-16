@@ -1,3 +1,8 @@
+/* Tests copying a struct including function pointers.
+ * COMPILE-TIME PARAMETERS:
+ *   ARRAY_SIZE: Affects the size of the object. (0 or more)
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
