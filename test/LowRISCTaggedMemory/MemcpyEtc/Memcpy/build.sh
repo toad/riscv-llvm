@@ -83,9 +83,9 @@ for main in main*.c; do
 	echo Assembling and linking with gcc
 	if test "$build" == "gcc-linux"
 	then
-		riscv-linux-gcc -static -o test-${main}.${build}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c tag.c || exit 3
+		riscv-linux-gcc -static -o test-${main}.$1.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c tag.c || exit 3
 	else
-		riscv64-unknown-elf-g++ -o test-${main}.${build}.riscv *.s || exit 3
+		riscv64-unknown-elf-g++ -o test-${main}.$1.riscv *.s || exit 3
 	fi
-	echo Successfully built test-${main}.${build}.riscv
+	echo Successfully built test-${main}.$1.riscv
 done

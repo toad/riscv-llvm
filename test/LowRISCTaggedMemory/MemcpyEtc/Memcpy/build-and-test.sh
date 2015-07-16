@@ -5,10 +5,10 @@ test_success()
 {
 	if ! ./build.sh $1 $2 > /dev/null 2>&1
 	then echo Could not build with $1 $2; exit 1; fi
-	if ! spike pk test-main.c.*.riscv | grep Success > /dev/null 2>&1
+	if ! spike pk test-main.c.$1.riscv | grep Success > /dev/null 2>&1
 	then
 		echo Test failed for $1 $2
-		spike pk test-main.c.*.riscv
+		spike pk test-main.c.$1.riscv
 		exit 2
 	fi
 }
@@ -16,10 +16,10 @@ test_success()
 test_failure() {
 	if ! ./build.sh $1 $2 > /dev/null 2>&1
 	then echo Could not build with $1 $2; exit 1; fi
-	if spike pk test-main.c.*.riscv | grep Success > /dev/null 2>&1
+	if spike pk test-main.c.$1.riscv | grep Success > /dev/null 2>&1
 	then
 		echo "Test succeeded for $1 $2 should have failed"
-		spike pk test-main.c.*.riscv
+		spike pk test-main.c.$1.riscv
 		exit 3
 	fi
 }
