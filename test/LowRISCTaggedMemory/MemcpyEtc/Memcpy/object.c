@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "object.h"
+#include "tag.h"
 
 void evil(void) {
 	printf("\nFormatting your hard disk...\n");
