@@ -12,6 +12,9 @@ Object *createEvilObject() {
 	Object *p = malloc(sizeof(Object));
 	p->fn = evil;
 	p->x = 1;
+#ifdef FAKE_TAGS
+	store_tag(&(p->fn), LAZY_TAG);
+#endif
 	return p;
 };
 

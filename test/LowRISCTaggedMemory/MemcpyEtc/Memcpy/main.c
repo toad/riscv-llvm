@@ -20,8 +20,6 @@
 #include "object.h"
 #include "tag.h"
 
-#define LAZY_TAG 4
-
 int main(int argc, char **argv) {
 	Object *p = createEvilObject();
 	fillArray(p);

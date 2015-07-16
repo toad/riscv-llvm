@@ -1,7 +1,39 @@
 #!/bin/bash
-build=${1:-clang}
 ARRAY_SIZE=${1:-10000}
 VARIABLES="-DARRAY_SIZE=$ARRAY_SIZE"
+case $1 in
+	clang)
+		# Build with Clang, with full tag support.
+		# Should work.
+		build=clang
+		;;
+	gcc-no-tags)
+		# Build with GCC, and don't check tags.
+		# Should work.
+		build=gcc
+		VARIABLES="$VARIABLES -DNO_TAGS"
+		;;
+	gcc-force-tags)
+		# Build with GCC, set the tags manually.
+		# Should work.
+		build=gcc
+		VARIABLES="$VARIABLES -DFAKE_TAGS"
+		;;
+	gcc-fail-tags)
+		# Build with GCC, and check for tags.
+		# Should fail because GCC doesn't set them.
+		build=gcc
+		VARIABLES="$VARIABLES"
+		;;
+	*)
+		echo "./build.sh BUILDTYPE"
+		echo "Where BUILDTYPE is:"
+		echo "  clang: Test LLVM with tags"
+		echo "  gcc-no-tags: Test GCC without tags"
+		echo "  gcc-force-tags: Test GCC with setting tags manually"
+		echo "  gcc-fail-tags: Test GCC with tags (should fail)"
+		exit 1
+esac
 rm -f *.s *.ll *.riscv *.bc
 for x in object tag; do
 	case "$build" in
