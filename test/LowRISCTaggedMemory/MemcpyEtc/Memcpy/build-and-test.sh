@@ -24,7 +24,7 @@ test_failure() {
 	fi
 }
 
-for x in $(seq 0 1000)
+for x in $(seq 0 100) $(seq 2000 2100)
 do
 	echo Testing non-overlapping memmove and memcpy with size $x
 	echo "Testing GCC code ignoring tags"
