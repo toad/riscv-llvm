@@ -41,7 +41,7 @@ case $1 in
 		echo "  gcc-fail-tags: Test GCC with tags (should fail)"
 		exit 1
 esac
-rm -f *.s *.ll *.riscv *.bc
+rm -f *.s *.ll *.bc
 for x in object tag; do
 	case "$build" in
 	"clang")
