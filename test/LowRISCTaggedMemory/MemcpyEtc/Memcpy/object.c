@@ -36,6 +36,16 @@ Object *moveObject(Object *p) {
 	return q;
 }
 
+void deleteObject(Object *p) {
+#ifndef NO_TAGS
+	void *vp = (void*) p;
+	vp -= sizeof(long);
+        store_tag(vp, 0);
+        store_tag(vp + sizeof(Object) + sizeof(long), 0);
+#endif
+	free(vp);
+}
+
 #if ARRAY_SIZE > 0
 /* Simple checks for memmove basic functionality */
 void fillArray(Object *p) {

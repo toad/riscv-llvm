@@ -52,5 +52,8 @@ int main(int argc, char **argv) {
 #endif
 	r->fn();
 	printf("Success!\n");
+	deleteObject(p);
+	deleteObject(q);
+	deleteObject(r);
 	return 0;
 }
