@@ -39,6 +39,7 @@ case $1 in
 		echo "  gcc-no-tags: Test GCC without tags"
 		echo "  gcc-force-tags: Test GCC with setting tags manually"
 		echo "  gcc-fail-tags: Test GCC with tags (should fail)"
+		echo "  gcc-linux: Build test for booted Linux using GCC with fake tags (should succeed)"
 		exit 1
 esac
 rm -f *.s *.ll *.bc
