@@ -1,3 +1,6 @@
+/* Test memmove from [0] to [1] i.e. forwards (so the actual copy is
+ * backwards), with tags. Set VERBOSE if you want a debugging dump. */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,15 +24,19 @@ int main() {
 	for(i=0;i<LENGTH;i++) arr[i] = i;
 	store_tag(&arr[0], LAZY);
 	store_tag(&arr[1], LAZY);
+#ifdef VERBOSE
 	printf("Before move:\n");
         for(i=0;i<LENGTH+2;i++) {
                 printf("Array[%d]=%ld tag %d at %p\n", i, realarray[i], load_tag(&realarray[i]), &realarray[i]);
 	}
 	printf("\n");
+#endif
 	memmove(&arr[1], &arr[0], sizeof(long)*(LENGTH-1));
+#ifdef VERBOSE
 	for(i=0;i<LENGTH+2;i++) {
 		printf("Array[%d]=%ld tag %d\n", i, realarray[i], load_tag(&realarray[i]));
 	}
+#endif
 	for(i=1;i<LENGTH;i++) {
 		if(arr[i] != i-1) {
 			printf("Array[%d]=%ld should be %d\n", i, arr[i], i-1);
