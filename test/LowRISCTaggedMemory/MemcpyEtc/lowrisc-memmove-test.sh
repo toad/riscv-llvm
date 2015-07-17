@@ -20,7 +20,7 @@ case "$BUILDWITH" in
 		cp memmove1.riscv.linux $OWD
 		cd $OWD
 		rm -Rf $TMP
-		exit 3
+		exit 0
 	;;
 	*)
 		exit 2
