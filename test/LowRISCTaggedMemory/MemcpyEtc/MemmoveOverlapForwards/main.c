@@ -13,11 +13,14 @@
 #endif
 
 int main() {
+	printf("Starting test...\n");
+	printf("Running forwards memmove test with length %d\n\n", LENGTH);
 	long arr[LENGTH];
 	int i=0;
 	for(i=0;i<LENGTH;i++) arr[i] = i;
 	store_tag(&arr[1], LAZY);
 	store_tag(&arr[2], LAZY);
+	printf("Memcopy from %p to %p length %ld\n\n", &arr[1], &arr[0], sizeof(long)*(LENGTH-1));
 	memmove(&arr[0], &arr[1], sizeof(long)*(LENGTH-1));
 	if(load_tag(&arr[0]) != LAZY) {
 		printf("ERROR: Tag on [1] should be LAZY=%d, is %d\n", LAZY, load_tag(&arr[1]));
