@@ -14,10 +14,12 @@ Object *createEvilObject() {
 	Object *p = vp + sizeof(long);
 	p->fn = evil;
 	p->x = 1;
-#ifdef FAKE_TAGS
+#ifndef NO_TAGS
 	store_tag(vp, READ_ONLY);
-	store_tag(&(p->fn), LAZY_TAG);
 	store_tag(vp + sizeof(Object) + sizeof(long), READ_ONLY);
+#endif
+#ifdef FAKE_TAGS
+	store_tag(&(p->fn), LAZY_TAG);
 #endif
 	return p;
 };
