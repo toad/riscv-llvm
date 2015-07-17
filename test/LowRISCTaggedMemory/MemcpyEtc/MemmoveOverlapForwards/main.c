@@ -14,7 +14,10 @@
 int main() {
 	printf("Starting test...\n");
 	printf("Running forwards memmove test with length %d\n\n", LENGTH);
-	long arr[LENGTH];
+	long realarray[LENGTH + 2];
+	long* arr=&realarray[1];
+	store_tag(&realarray[0], READ_ONLY);
+	store_tag(&realarray[LENGTH+1], READ_ONLY);
 	int i=0;
 	for(i=0;i<LENGTH;i++) arr[i] = i;
 	store_tag(&arr[1], LAZY);
@@ -39,6 +42,7 @@ int main() {
 			exit(4);
 		}
 	}
+	for(i=0;i<LENGTH+2;i++) store_tag(&realarray[i], 0);
 	printf("Success!\n");
 	return 0;
 }
