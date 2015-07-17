@@ -13,7 +13,7 @@ mkdir mnt
 mkdir mnt/bin
 rm -f *.riscv-linux
 rm -f $SCRIPT
-echo "#!/bin/ash" > run-memcpy-tests.sh
+echo "#!/bin/ash" > $SCRIPT
 for x in $(seq 3 100) $(seq 2000 2100)
 do
 	echo Building $x
