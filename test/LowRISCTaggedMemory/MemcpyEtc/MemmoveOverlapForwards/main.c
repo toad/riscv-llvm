@@ -3,7 +3,6 @@
 #include <string.h>
 #include "tag.h"
 
-#define LAZY 4
 #ifndef LENGTH
 #define LENGTH 3
 #else

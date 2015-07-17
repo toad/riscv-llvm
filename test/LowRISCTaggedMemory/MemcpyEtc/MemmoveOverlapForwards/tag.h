@@ -5,6 +5,10 @@
 
 #define TAG_WIDTH 4
 
+#define LAZY 4
+#define READ_ONLY 1
+#define INVALID 3
+
 static inline int load_tag(const void *addr) {
   int rv = 32;
   asm volatile ("ltag %0, 0(%1)"
