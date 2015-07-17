@@ -9,15 +9,20 @@ void evil(void) {
 	printf("\nFormatting your hard disk...\n");
 };
 
-Object *createEvilObject() {
+static Object* allocateSpaceForObject() {
 	void *vp = malloc(sizeof(Object)+sizeof(long)*2);
 	Object *p = vp + sizeof(long);
-	p->fn = evil;
-	p->x = 1;
 #ifndef NO_TAGS
 	store_tag(vp, READ_ONLY);
 	store_tag(vp + sizeof(Object) + sizeof(long), READ_ONLY);
 #endif
+	return p;
+}
+
+Object *createEvilObject() {
+	Object *p = allocateSpaceForObject();
+	p->fn = evil;
+	p->x = 1;
 #ifdef FAKE_TAGS
 	store_tag(&(p->fn), LAZY_TAG);
 #endif
@@ -25,13 +30,13 @@ Object *createEvilObject() {
 };
 
 Object *copyObject(Object *p) {
-	Object *q = malloc(sizeof(Object));
+	Object *q = allocateSpaceForObject();
 	memcpy(q, p, sizeof(Object));
 	return q;
 };
 
 Object *moveObject(Object *p) {
-	Object *q = malloc(sizeof(Object));
+	Object *q = allocateSpaceForObject();
 	memmove(q, p, sizeof(Object));
 	return q;
 }
