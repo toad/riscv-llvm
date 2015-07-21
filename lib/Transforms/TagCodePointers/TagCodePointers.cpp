@@ -280,6 +280,10 @@ namespace {
       return FunctionCheckTagged;
     }
 
+    Function* getFunctionInit() {
+      return Init;
+    }
+
   };
 
   char TagCodePointersBase::ID = 0;
@@ -288,6 +292,7 @@ namespace {
   struct TagCodePointers : public FunctionPass {
     
     Function *FunctionCheckTagged = NULL;
+    Function *FunctionInit = NULL;
 
     static char ID; // Pass identification, replacement for typeid
     TagCodePointers() : FunctionPass(ID) {}
@@ -303,6 +308,9 @@ namespace {
           it != blocks.end(); it++) {
         if(runOnBasicBlock(*it)) added = true;
       }
+      BasicBlock &entry = F.getEntryBlock();
+      CallInst *CI = CallInst::Create(getFunctionInit());
+      entry.getInstList().insert(entry.getFirstInsertionPt(), CI);
       return added;
     }
 
@@ -455,6 +463,13 @@ namespace {
       errs() << "TagCodePointers got " << FunctionCheckTagged << "\n";
       return FunctionCheckTagged;
     }
+
+    Function *getFunctionInit() {
+      if(FunctionInit) return FunctionInit;
+      FunctionInit = getAnalysis<TagCodePointersBase>().getFunctionInit();
+      return FunctionInit;
+    }
+
   };
   
   char TagCodePointers::ID = 0;
