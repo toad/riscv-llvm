@@ -285,18 +285,28 @@ namespace {
   char TagCodePointersBase::ID = 0;
   static RegisterPass<TagCodePointersBase> X("tag-code-pointers-base", "Add helper function for tag-code-pointers");
 
-  struct TagCodePointers : public BasicBlockPass {
+  struct TagCodePointers : public FunctionPass {
     
     Function *FunctionCheckTagged = NULL;
 
     static char ID; // Pass identification, replacement for typeid
-    TagCodePointers() : BasicBlockPass(ID) {}
+    TagCodePointers() : FunctionPass(ID) {}
 
     virtual void getAnalysisUsage(AnalysisUsage &Info) const {
       Info.addRequired<TagCodePointersBase>();
     }
 
-    virtual bool runOnBasicBlock(BasicBlock &BB) {
+    virtual bool runOnFunction(Function &F) {
+      bool added = false;
+      Function::BasicBlockListType& blocks = F.getBasicBlockList();
+      for(Function::BasicBlockListType::iterator it = blocks.begin(); 
+          it != blocks.end(); it++) {
+        if(runOnBasicBlock(*it)) added = true;
+      }
+      return added;
+    }
+
+    bool runOnBasicBlock(BasicBlock &BB) {
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
       BasicBlock::InstListType& instructions = BB.getInstList();
