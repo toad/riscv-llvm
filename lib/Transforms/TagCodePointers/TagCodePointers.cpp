@@ -40,6 +40,7 @@ namespace {
     TagCodePointersBase() : ModulePass(ID) {}
 
     Function* FunctionCheckTagged = NULL;
+    Function* Init = NULL;
 
     /* Adds __llvm_riscv_check_tagged */
     virtual bool runOnModule(Module &M) {
@@ -83,8 +84,11 @@ namespace {
 
       errs() << "Function at end: \n" << *init << "\n";
 
-      // FIXME somehow call the init function...
-      // FIXME we can use global_ctors, but only if LLVM does the linking...
+      // FIXME use global_ctors.
+      // FIXME doesn't work at the moment because of having to link with gcc
+      // Easily demonstrated by trying to use iostreams. :(
+
+      Init = init;
       return true;
     }
 
