@@ -302,6 +302,10 @@ namespace {
     }
 
     virtual bool runOnFunction(Function &F) {
+      StringRef name = F.getName();
+      errs() << "Processing " << name << "\n";
+      if(F.getName() == "__llvm_riscv_init" || 
+         F.getName() == "__llvm_riscv_check_tagged") return false;
       bool added = false;
       Function::BasicBlockListType& blocks = F.getBasicBlockList();
       for(Function::BasicBlockListType::iterator it = blocks.begin(); 
