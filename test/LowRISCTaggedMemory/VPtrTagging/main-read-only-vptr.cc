@@ -16,7 +16,9 @@ int main() {
 		t = new Test(1);
 	else
 		t = new SubclassTest();
+	printf("Constructed something\n");
 	t->print();
+	printf("Dumped\n"); // Important if problems with tagging vtables.
 	// Now test the tagging code...
 	printf("Trying to overwrite the vptr...\n");
 	printf("This should succeed in lazy mode and fail in non-lazy mode...\n");
