@@ -220,8 +220,6 @@ namespace {
           grabbers.splice(grabbers.begin(), sub);
         }
       }
-      if(!grabbers.empty())
-        grabbers.push_front(getter); // Need to tag the original pointer.
       return grabbers;
     }
     
