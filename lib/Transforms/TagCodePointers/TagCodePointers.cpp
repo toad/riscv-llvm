@@ -69,6 +69,7 @@ namespace {
           errs() << "Initialized variable: " << var << "\n";
           errs() << "Type is " << *var.getType() << "\n";
           Constant *initializer = var.getInitializer();
+          if(!checkInitializer(initializer)) continue;
           // FIXME probably need to pass builder in?
           std::list<Value*> toTag = processInitializer(initializer, &var, Context, builder);
           for(std::list<Value*>::iterator it = toTag.begin(); it != toTag.end(); it++) {
@@ -212,17 +213,46 @@ namespace {
         if(!isa<Constant>(*v)) {
           errs() << "Member is not a constant?!\n";
         } else {
-          Value *newGetter;
-          Value *idxValue = getInt64(i, Context);
-          Value *ops = { idxValue };
-          errs() << "Creating GetElementPtrInst from:\n";
-          errs() << *getter;
-          errs() << "\n (For " << *idxValue << ")\n";
-          newGetter = builder.CreateGEP(getter, ops);
-          errs() << "Getter is " << *newGetter << "\n";
-          std::list<Value*> sub = processInitializer((Constant*)v, newGetter, Context, builder);
+          std::vector<Value*> args;
+          args.push_back(getInt64(0, Context)); // Dereference pointer to structure.
+          args.push_back(getInt64(i, Context)); // Choose element.
+          std::list<Value*> sub = processMoreOperands((Constant*)v, getter, args, Context, builder);
           grabbers.splice(grabbers.begin(), sub);
         }
+      }
+      if(!grabbers.empty())
+        grabbers.push_front(getter); // Need to tag the original pointer.
+      return grabbers;
+    }
+    
+    std::list<Value*> processMoreOperands(Constant *init, Value *getter, std::vector<Value*> derefSoFar, LLVMContext &Context, IRBuilder<> builder) {
+      std::list<Value*> grabbers;
+      if(isa<ConstantArray>(init) || isa<ConstantVector>(init) || isa<ConstantStruct>(init)) {
+        std::vector<Value*> deref = derefSoFar;
+        // Dereference more levels of nested (but packed!) array/structure...
+        for(unsigned i=0;i<init->getNumOperands();i++) {
+          errs() << "Processing aggregate parameter " << i << "\n";
+          Value *v = init->getOperand(i);
+          Constant *c = (Constant*)v;
+          if(!checkInitializer(c)) continue;
+          errs() << "Parameter is \n" << *v << "\n";
+          deref.push_back(getInt64(i, Context));
+          std::list<Value*> sub = 
+            processMoreOperands(init, getter, deref, Context, builder);
+          grabbers.splice(grabbers.begin(), sub);
+        }
+      } else {
+        errs() << "Creating GetElementPtrInst from:\n";
+        errs() << *getter;
+        errs() << "\nDereference chain: " << "\n";
+        for(std::vector<Value*>::iterator it = derefSoFar.begin(); 
+            it != derefSoFar.end(); it++) {
+          errs() << *it << "\n";
+        }
+        Value *newGetter = builder.CreateGEP(getter, derefSoFar);
+        errs() << "Getter is " << *newGetter << "\n";
+        std::list<Value*> sub = processInitializer(init, newGetter, Context, builder);
+        grabbers.splice(grabbers.begin(), sub);
       }
       return grabbers;
     }
