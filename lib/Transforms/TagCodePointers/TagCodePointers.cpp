@@ -95,6 +95,13 @@ namespace {
         GlobalVariable& var = *it;
         if(var.hasInitializer()) {
           errs() << "Initialized variable: " << var << "\n";
+          if(var.hasAppendingLinkage()) {
+            errs() << "Ignoring because of appending linkage\n";
+            // Mostly this will be global_ctors / global_dtors, we don't need to do anything to them, they will be run anyway by lower level code.
+            // FIXME do we need to support this?
+            // Would need special-purpose code, how do we find the array length?
+            continue;
+          }
           errs() << "Type is " << *var.getType() << "\n";
           Constant *initializer = var.getInitializer();
           if(checkInitializer(initializer)) {
