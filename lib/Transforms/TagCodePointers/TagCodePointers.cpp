@@ -26,6 +26,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Transforms/Utils/ModuleUtils.h"
 using namespace llvm;
 
 namespace {
@@ -84,8 +85,7 @@ namespace {
 
       errs() << "Function at end: \n" << *init << "\n";
 
-      // FIXME somehow call the init function...
-      // FIXME we can use global_ctors, but only if LLVM does the linking...
+      appendToGlobalCtors(M, init, 0); // FIXME priority? 65534? Want to run before static constructors which may call functions!
       return true;
     }
 
