@@ -56,7 +56,7 @@ for main in main*.c fail*.c; do
 		echo Building $main with clang
 		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I. -I $RISCV/riscv64-unknown-elf/include/ -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
 		if ! opt -load $TOP/riscv-llvm/build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${main}.ll > ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
-		if ! llc -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
+		if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
 		;;
 	*)
 		exit 5
