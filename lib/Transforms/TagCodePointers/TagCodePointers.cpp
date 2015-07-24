@@ -229,11 +229,11 @@ namespace {
         std::vector<Value*> deref = derefSoFar;
         // Dereference more levels of nested (but packed!) array/structure...
         for(unsigned i=0;i<init->getNumOperands();i++) {
-          errs() << "Processing aggregate parameter " << i << "\n";
+          errs() << "Processing aggregate parameter " << i << " with " << derefSoFar.size() << " parameters already processed.\n";
           Value *v = init->getOperand(i);
           Constant *c = (Constant*)v;
           if(!checkInitializer(c)) continue;
-          errs() << "Parameter is \n" << *v << "\n";
+          errs() << "Parameter is (processing more operands):\n" << *v << "\n";
           deref.push_back(getInt64(i, Context));
           std::list<Value*> sub = 
             processMoreOperands(init, getter, deref, Context, builder);
@@ -245,7 +245,7 @@ namespace {
         errs() << "\nDereference chain: " << "\n";
         for(std::vector<Value*>::iterator it = derefSoFar.begin(); 
             it != derefSoFar.end(); it++) {
-          errs() << *it << "\n";
+          errs() << **it << "\n";
         }
         Value *newGetter = builder.CreateGEP(getter, derefSoFar);
         errs() << "Getter is " << *newGetter << "\n";
