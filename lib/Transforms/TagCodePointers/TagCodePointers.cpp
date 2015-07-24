@@ -236,7 +236,7 @@ namespace {
           errs() << "Parameter is (processing more operands):\n" << *v << "\n";
           deref.push_back(getInt64(i, Context));
           std::list<Value*> sub = 
-            processMoreOperands(init, getter, deref, Context, builder);
+            processMoreOperands(c, getter, deref, Context, builder);
           grabbers.splice(grabbers.begin(), sub);
         }
       } else {
