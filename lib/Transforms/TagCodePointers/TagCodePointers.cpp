@@ -340,12 +340,9 @@ namespace {
           it != blocks.end(); it++) {
         if(runOnBasicBlock(*it)) added = true;
       }
-      Function *Init = getFunctionInit();
-      if(Init) {
-        BasicBlock &entry = F.getEntryBlock();
-        CallInst *CI = CallInst::Create(Init);
-        entry.getInstList().insert(entry.getFirstInsertionPt(), CI);
-      }
+      BasicBlock &entry = F.getEntryBlock();
+      CallInst *CI = CallInst::Create(getFunctionInit());
+      entry.getInstList().insert(entry.getFirstInsertionPt(), CI);
       return added;
     }
 
