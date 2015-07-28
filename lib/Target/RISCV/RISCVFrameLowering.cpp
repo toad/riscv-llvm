@@ -297,7 +297,7 @@ RISCVFrameLowering::restoreCalleeSavedRegisters(MachineBasicBlock &MBB,
   if (!AtStart)
     --BeforeI;
   MachineFunction *MF = MBB.getParent();
-  const RISCVInstrInfo &TII = (RISCVInstrInfo&) *MF->getTarget().getInstrInfo();
+  const RISCVInstrInfo &TII = (const RISCVInstrInfo&) *MF->getTarget().getInstrInfo();
   for (unsigned i = 0, e = CSI.size(); i != e; ++i) {
     unsigned Reg = CSI[i].getReg();
     errs() << "Un-spilling callee-saved register " << Reg << "\n";
