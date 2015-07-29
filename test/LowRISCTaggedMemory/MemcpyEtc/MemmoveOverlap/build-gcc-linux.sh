@@ -3,4 +3,4 @@
 rm -f *.s *.ll *.riscv *.bc
 x=main
 LENGTH=${1:-3}
-riscv-linux-gcc -static -O0 -I . -I $RISCV/riscv64-unknown-elf/include/ ${x}.c -o $x.riscv-linux -DLENGTH=$LENGTH || exit 5
+riscv-linux-gcc -static -O0 -I . -I $RISCV/riscv64-unknown-elf/include/ ${x}.c -o $x.riscv-linux -DLENGTH=$LENGTH -D__TAGGED_MEMORY__ || exit 5
