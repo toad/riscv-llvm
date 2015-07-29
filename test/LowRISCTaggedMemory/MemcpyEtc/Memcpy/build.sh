@@ -43,7 +43,7 @@ case $1 in
 		exit 1
 esac
 rm -f *.s *.ll *.bc
-for x in object tag; do
+for x in object; do
 	case "$build" in
 	"clang")
 		echo Building ${x}.c with clang
@@ -84,7 +84,7 @@ for main in main*.c; do
 	echo Assembling and linking with gcc
 	if test "$build" == "gcc-linux"
 	then
-		riscv-linux-gcc -static -o test-${main}.$1.${ARRAY_SIZE}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c tag.c || exit 3
+		riscv-linux-gcc -static -o test-${main}.$1.${ARRAY_SIZE}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c || exit 3
 	else
 		riscv64-unknown-elf-gcc -o test-${main}.$1.${ARRAY_SIZE}.riscv *.s || exit 3
 	fi
