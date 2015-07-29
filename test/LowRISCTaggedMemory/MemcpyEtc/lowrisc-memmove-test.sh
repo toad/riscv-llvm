@@ -3,11 +3,11 @@ OWD=$(pwd)
 BUILDWITH=${1:-clang}
 TMP=$(mktemp -d)
 cd $TMP
-cat $TOP/lowrisc-chip/riscv-tools/riscv-gnu-toolchain/src/newlib/newlib/testsuite/newlib.string/memmove1.c | sed "s/exit *(0)/printf(\"Success\\\\n\"); exit(0)/" | perl -pe 's/(main .void.)\n/\1/igs' | sed "s/\(main .void.\) *{/\\1 {\n  printf(\"Starting test\\\\n\");/" > memmove1.c
+cat $TOP/lowrisc-chip/riscv-tools/riscv-gnu-toolchain/build/src/newlib/newlib/testsuite/newlib.string/memmove1.c | sed "s/exit *(0)/printf(\"Success\\\\n\"); exit(0)/" | perl -pe 's/(main .void.)\n/\1/igs' | sed "s/\(main .void.\) *{/\\1 {\n  printf(\"Starting test\\\\n\");/" > memmove1.c
 case "$BUILDWITH" in
 	"clang")
 		echo Building with Clang
-		clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I -I $RISCV/riscv64-unknown-elf/include/ -S memmove1.c -o memmove1.s
+		clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I $RISCV/riscv64-unknown-elf/include/ -S memmove1.c -o memmove1.s
 	;;
 	"gcc")
 		echo Building with GCC
