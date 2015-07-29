@@ -1,7 +1,7 @@
 #!/bin/bash
 # $1 = compiler type
 # $2 = array size
-SCRIPT=run-memmove-overlap-tests.sh
+SCRIPT=run-memmove-random-tests.sh
 build()
 {
 	if ! ./build-gcc-linux.sh $1 > /dev/null 2>&1
@@ -18,9 +18,9 @@ for x in $(seq 3 100) $(seq 2000 2100)
 do
 	echo Building $x
 	build $x
-	mv main.riscv-linux mnt/bin/memmove-overlap-$x
+	mv main.riscv-linux mnt/bin/memmove-random-$x
 	echo "echo Running test $x" >> $SCRIPT
-	echo "memmove-overlap-$x || exit" >> $SCRIPT
+	echo "memmove-random-$x || exit" >> $SCRIPT
 done
 echo "echo Completed all tests" >> $SCRIPT
 chmod +x $SCRIPT
