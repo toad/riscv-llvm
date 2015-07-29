@@ -52,8 +52,8 @@ Object *moveObject(Object *p) {
 }
 
 void deleteObject(Object *p) {
-#ifndef NO_TAGS
 	void *vp = (void*) p;
+#ifndef NO_TAGS
 	vp -= sizeof(long);
         store_tag(vp, 0);
         store_tag(vp + sizeof(Object) + sizeof(long), 0);
