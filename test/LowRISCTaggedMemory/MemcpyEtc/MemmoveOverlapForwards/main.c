@@ -1,7 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "tag.h"
+
+#ifndef NO_TAGS
+# ifndef __TAGGED_MEMORY__
+#  error Tagged memory must be supported by compiler!
+# endif
+#include <sys/platform/tag.h>
+#define load_tag __riscv_load_tag
+#define store_tag __riscv_store_tag
+#define LAZY __RISCV_TAG_LAZY
+#define READ_ONLY __RISCV_TAG_READ_ONLY
+#endif
 
 #ifndef LENGTH
 #define LENGTH 3
