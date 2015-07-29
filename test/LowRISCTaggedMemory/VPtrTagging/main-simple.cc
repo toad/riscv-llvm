@@ -6,7 +6,13 @@
 #include <cassert>
 
 #ifdef CHECK_TAGS
-#include "tag.c"
+# ifndef __TAGGED_MEMORY__
+#  error Tagged memory must be supported by compiler!
+# endif
+#include <sys/platform/tag.h>
+#define load_tag __riscv_load_tag
+#define store_tag __riscv_store_tag
+#define LAZY_TAG __RISCV_TAG_LAZY
 #endif
 
 int main() {
