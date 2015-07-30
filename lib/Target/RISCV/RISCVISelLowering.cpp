@@ -274,6 +274,13 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
     setOperationAction(ISD::ATOMIC_LOAD_SUB,  MVT::i64, Expand);
   }
 
+  if(Subtarget.hasTM()) {
+    setLibcallName(RTLIB::MEMCPY_WITH_TAGS, "__riscv_memcpy_tagged");
+    setLibcallName(RTLIB::MEMMOVE_WITH_TAGS, "__riscv_memmove_tagged");
+    setLibcallName(RTLIB::MEMCPY_NO_TAGS, "__riscv_memcpy_no_tags");
+    setLibcallName(RTLIB::MEMMOVE_NO_TAGS, "__riscv_memmove_no_tags");
+  }
+
   setOperationAction(ISD::SMUL_LOHI, MVT::i32, Expand);
   setOperationAction(ISD::SMUL_LOHI, MVT::i64, Expand);
   setOperationAction(ISD::UMUL_LOHI, MVT::i32, Expand);
