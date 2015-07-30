@@ -3808,8 +3808,11 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                           TLI.getPointerTy()));
       // Arguments...
       Ops.push_back(CopyFrom);
+      SmallVector<EVT, 8> VTs;
+      VTs.push_back(VT);
+      VTs.push_back(MVT::Other);
       SDValue TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
-                                     DAG.getVTList(VT), &Ops[0], Ops.size());
+                                     VTs, &Ops[0], Ops.size());
       LoadTagValues.push_back(TagValue);
       LoadChains.push_back(TagValue.getValue(1));
       errs() << "Added ltag in memmove...\n";
