@@ -3607,8 +3607,12 @@ static RTLIB::Libcall getMemcopyOp(bool isMove, MOVE_TAGS t) {
 }
 
 static MOVE_TAGS shouldMoveTags(const TargetMachine &TM, 
-  ConstantSDNode *ConstantSize) {
+  ConstantSDNode *ConstantSize, unsigned Align) {
   if(TM.hasTaggedMemory()) {
+    if(Align % 8 != 0) {
+      // If it's a structure etc it will be aligned already.
+      return RUNTIME;
+    }
     if(ConstantSize) {
       if (ConstantSize->isNullValue()) return RUNTIME;
       int size = ConstantSize->getZExtValue();
@@ -3989,7 +3993,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   // Check to see if we should lower the memcpy to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
-  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize);
+  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize, Align);
   if (ConstantSize) {
     // Memcpy with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
@@ -4060,7 +4064,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
   // Check to see if we should lower the memmove to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
-  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize);
+  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize, Align);
   if (ConstantSize) {
     // Memmove with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
