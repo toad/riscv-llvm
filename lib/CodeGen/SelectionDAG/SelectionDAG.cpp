@@ -3627,7 +3627,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                        SDValue Src, uint64_t Size,
                                        unsigned Align, bool isVol,
                                        bool AlwaysInline,
-                                       bool CopyTags,
+                                       MOVE_TAGS CopyTags,
                                        MachinePointerInfo DstPtrInfo,
                                        MachinePointerInfo SrcPtrInfo) {
   // Turn a memcpy of undef to nop.
@@ -3683,7 +3683,8 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
   
-  if(CopyTags && ((Align % 8 != 0) || (Size % 8 != 0))) CopyTags = false;
+  if(CopyTags == RUNTIME) return Chain;
+  assert(CopyTags == NO_TAGS || Align % 8 == 0);
 
   SmallVector<SDValue, 8> OutChains;
   unsigned NumMemOps = MemOps.size();
@@ -3729,7 +3730,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       Value = DAG.getExtLoad(ISD::EXTLOAD, dl, NVT, Chain, CopyFrom,
                              SrcPtrInfo.getWithOffset(SrcOff), VT, isVol, false,
                              MinAlign(SrcAlign, SrcOff));
-      if(CopyTags) {
+      if(CopyTags == WITH_TAGS) {
         errs() << "Trying to add ltag in memcpy...\n";
         SmallVector<SDValue, 8> Ops;
         // FIXME LOWRISC: Assume that reads do not invalidate loads, so no dependency.
@@ -3747,7 +3748,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       Store = DAG.getTruncStore(Chain, dl, Value, CopyTo,
                                 DstPtrInfo.getWithOffset(DstOff), VT, isVol,
                                 false, Align);
-      if(CopyTags) {
+      if(CopyTags == WITH_TAGS) {
         errs() << "Trying to add stag in memcpy...\n";
         SmallVector<SDValue, 8> Ops;
         Ops.push_back(Store); // Chain: stag must be after store.
@@ -3776,7 +3777,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                         SDValue Chain, SDValue Dst,
                                         SDValue Src, uint64_t Size,
                                         unsigned Align,  bool isVol,
-                                        bool AlwaysInline, bool CopyTags,
+                                        bool AlwaysInline, MOVE_TAGS CopyTags,
                                         MachinePointerInfo DstPtrInfo,
                                         MachinePointerInfo SrcPtrInfo) {
   // Turn a memmove of undef to nop.
@@ -3816,7 +3817,9 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
 
-  if(CopyTags && ((Align % 8 != 0) || (Size % 8 != 0))) CopyTags = false;
+  if(CopyTags == RUNTIME) return Chain;
+  assert(CopyTags == NO_TAGS || Align % 8 == 0);
+
   uint64_t SrcOff = 0, DstOff = 0;
   SmallVector<SDValue, 8> LoadValues;
   SmallVector<SDValue, 8> LoadTagValues;
@@ -3834,7 +3837,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                         false, false, SrcAlign);
     LoadValues.push_back(Value);
     LoadChains.push_back(Value.getValue(1));
-    if(CopyTags) {
+    if(CopyTags == WITH_TAGS) {
       errs() << "Trying to add ltag in memmove...\n";
       SmallVector<SDValue, 8> Ops;
       // FIXME LOWRISC: Assume that reads do not invalidate loads, so no dependency.
@@ -3868,7 +3871,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                          CopyTo,
                          DstPtrInfo.getWithOffset(DstOff), isVol, false, Align);
 
-    if(CopyTags) {
+    if(CopyTags == WITH_TAGS) {
       errs() << "Trying to add stag in memmove...\n";
       SmallVector<SDValue, 8> Ops;
       Ops.push_back(Store); // Chain: stag must be after store.
@@ -3994,7 +3997,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
 
     SDValue Result = getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
                                              ConstantSize->getZExtValue(),Align,
-                                isVol, false, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
+                                isVol, false, moveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
@@ -4014,7 +4017,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
     assert(ConstantSize && "AlwaysInline requires a constant size!");
     return getMemcpyLoadsAndStores(*this, dl, Chain, Dst, Src,
                                    ConstantSize->getZExtValue(), Align, isVol,
-                                   true, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
+                                   true, moveTags, DstPtrInfo, SrcPtrInfo);
   }
 
   // FIXME: If the memcpy is volatile (isVol), lowering it to a plain libc
@@ -4066,7 +4069,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
     SDValue Result =
       getMemmoveLoadsAndStores(*this, dl, Chain, Dst, Src,
                                ConstantSize->getZExtValue(), Align, isVol,
-                               false, TM.hasTaggedMemory(), DstPtrInfo, SrcPtrInfo);
+                               false, moveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
   }
