@@ -3697,7 +3697,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     EVT VT = MemOps[i];
     unsigned VTSize = VT.getSizeInBits() / 8;
     SDValue Value, Store, TagValue, TagStore;
-    SDValue& ToPush = CopyTags ? TagStore : Store;
+    SDValue& ToPush = CopyTags == WITH_TAGS ? TagStore : Store;
 
     if (VTSize > Size) {
       // Issuing an unaligned load / store pair  that overlaps with the previous
