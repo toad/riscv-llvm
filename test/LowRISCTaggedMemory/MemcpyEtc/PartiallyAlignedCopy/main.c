@@ -34,14 +34,23 @@ void verify(long *aa, long *bb, int length, int words) {
 		}
 	} else {
 		printf("Copied bytes, should NOT have copied tags...\n");
-		for(i=0;i<words;i++) {
-			printf("aa[%d] = %ld tag %d\n", i, aa[i], load_tag(&aa[i]));
-			printf("bb[%d] = %ld tag %d\n", i, bb[i], load_tag(&bb[i]));
-		}
+//		for(i=0;i<words;i++) {
+//			printf("aa[%d] = %ld tag %d\n", i, aa[i], load_tag(&aa[i]));
+//			printf("bb[%d] = %ld tag %d\n", i, bb[i], load_tag(&bb[i]));
+//		}
 		for(i=0;i<words;i++) {
 			assert(load_tag(&bb[i]) == 0);
 			if(i != words-1) assert(bb[i] == aa[i]);
 		}
+	}
+	char *a = aa;
+	char *b = bb;
+	for(i=0;i<length;i++) {
+		//printf("Byte %d: %d = %d\n", i, (int)*a, (int)*b);
+		assert(*a++ == *b++);
+	}
+	for(i=length;i<words*sizeof(long);i++) {
+		assert(*b++ == 0);
 	}
 }
 
