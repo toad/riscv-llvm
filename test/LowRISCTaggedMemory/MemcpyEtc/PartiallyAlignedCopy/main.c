@@ -1,3 +1,8 @@
+/* Test partial alignment. That is, memcpy/memmove where source and dest are 8-byte
+ * aligned but the number of bytes copied may not be. The number of bytes copied is
+ * a compile-time parameter, so for small numbers of bytes this tests the compiler.
+ * For large numbers of bytes copied it tests libc. */
+
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
