@@ -3845,7 +3845,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       SDValue TagStore = DAG.getNode(ISD::INTRINSIC_VOID, dl,
                                      DAG.getVTList(MVT::Other), &Ops[0], Ops.size());
       OutChains.push_back(TagStore);
-      errs() << "Added stag in memcpy...\n";
+      errs() << "Added stag in memmove...\n";
     } else {
       OutChains.push_back(Store);
     }
