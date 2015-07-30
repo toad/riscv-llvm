@@ -3647,7 +3647,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
   
-  if(CopyTags && (Align % 8 != 0)) CopyTags = false;
+  if(CopyTags && ((Align % 8 != 0) || (Size % 8 != 0))) CopyTags = false;
 
   SmallVector<SDValue, 8> OutChains;
   unsigned NumMemOps = MemOps.size();
@@ -3789,7 +3789,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
 
-  if(CopyTags && (Align % 8 != 0)) CopyTags = false;
+  if(CopyTags && ((Align % 8 != 0) || (Size % 8 != 0))) CopyTags = false;
   uint64_t SrcOff = 0, DstOff = 0;
   SmallVector<SDValue, 8> LoadValues;
   SmallVector<SDValue, 8> LoadTagValues;
