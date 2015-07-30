@@ -3586,6 +3586,42 @@ static bool FindOptimalMemOpLowering(std::vector<EVT> &MemOps,
   return true;
 }
 
+enum MOVE_TAGS {
+  /* Determine at runtime */
+  RUNTIME,
+  /* Do not copy tags */
+  NO_TAGS,
+  /* Copy tags */
+  WITH_TAGS
+};
+
+static RTLIB::Libcall getMemcopyOp(bool isMove, MOVE_TAGS t) {
+  switch(t) {
+    case RUNTIME:
+      return isMove ? RTLIB::MEMMOVE : RTLIB::MEMCPY;
+    case NO_TAGS:
+      return isMove ? RTLIB::MEMMOVE_NO_TAGS : RTLIB::MEMCPY_NO_TAGS;
+    case WITH_TAGS:
+      return isMove ? RTLIB::MEMMOVE_WITH_TAGS : RTLIB::MEMCPY_WITH_TAGS;
+  }
+}
+
+static MOVE_TAGS shouldMoveTags(const TargetMachine &TM, 
+  ConstantSDNode *ConstantSize) {
+  if(TM.hasTaggedMemory()) {
+    if(ConstantSize) {
+      if (ConstantSize->isNullValue()) return RUNTIME;
+      int size = ConstantSize->getZExtValue();
+      if(size % 8 != 0) {
+        return NO_TAGS;
+      } else {
+        return WITH_TAGS;
+      }
+    }
+  }
+  return RUNTIME;
+}
+
 static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                        SDValue Chain, SDValue Dst,
                                        SDValue Src, uint64_t Size,
@@ -3950,6 +3986,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   // Check to see if we should lower the memcpy to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
+  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize);
   if (ConstantSize) {
     // Memcpy with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
@@ -3993,14 +4030,16 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   Entry.Node = Dst; Args.push_back(Entry);
   Entry.Node = Src; Args.push_back(Entry);
   Entry.Node = Size; Args.push_back(Entry);
+
+  llvm::RTLIB::Libcall toCall = getMemcopyOp(true, moveTags);
   // FIXME: pass in DebugLoc
   TargetLowering::
   CallLoweringInfo CLI(Chain, Type::getVoidTy(*getContext()),
                     false, false, false, false, 0,
-                    TLI.getLibcallCallingConv(RTLIB::MEMCPY),
+                    TLI.getLibcallCallingConv(toCall),
                     /*isTailCall=*/false,
                     /*doesNotReturn=*/false, /*isReturnValueUsed=*/false,
-                    getExternalSymbol(TLI.getLibcallName(RTLIB::MEMCPY),
+                    getExternalSymbol(TLI.getLibcallName(toCall),
                                       TLI.getPointerTy()),
                     Args, *this, dl);
   std::pair<SDValue,SDValue> CallResult = TLI.LowerCallTo(CLI);
@@ -4018,6 +4057,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
   // Check to see if we should lower the memmove to loads and stores first.
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
+  MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize);
   if (ConstantSize) {
     // Memmove with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
@@ -4049,14 +4089,16 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
   Entry.Node = Dst; Args.push_back(Entry);
   Entry.Node = Src; Args.push_back(Entry);
   Entry.Node = Size; Args.push_back(Entry);
+
+  llvm::RTLIB::Libcall toCall = getMemcopyOp(true, moveTags);
   // FIXME:  pass in DebugLoc
   TargetLowering::
   CallLoweringInfo CLI(Chain, Type::getVoidTy(*getContext()),
                     false, false, false, false, 0,
-                    TLI.getLibcallCallingConv(RTLIB::MEMMOVE),
+                    TLI.getLibcallCallingConv(toCall),
                     /*isTailCall=*/false,
                     /*doesNotReturn=*/false, /*isReturnValueUsed=*/false,
-                    getExternalSymbol(TLI.getLibcallName(RTLIB::MEMMOVE),
+                    getExternalSymbol(TLI.getLibcallName(toCall),
                                       TLI.getPointerTy()),
                     Args, *this, dl);
   std::pair<SDValue,SDValue> CallResult = TLI.LowerCallTo(CLI);
