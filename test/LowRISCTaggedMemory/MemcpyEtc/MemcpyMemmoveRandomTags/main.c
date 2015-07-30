@@ -26,6 +26,18 @@ void verify(int seed, long *aa, int length) {
 	}
 }
 
+void verifyNoTags(int seed, long *aa, int length) {
+	srand(seed);
+	int i;
+	for(i=0;i<length;i++) {
+		long randomValue = rand();
+		unsigned char randomTag = rand() & ~7;
+		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
+		assert(aa[i] == randomValue);
+		assert((unsigned char)load_tag(&aa[i]) == 0);
+	}
+}
+
 void clean(long *aa, int length) {
 	int i;
 	for(i=0;i<length;i++,aa++) {
@@ -68,6 +80,26 @@ int main(int argc, char **argv) {
 	memmove(bb, aa, LENGTH * sizeof(long));
 	verify(seed, aa, LENGTH);
 	verify(seed, bb, LENGTH);
+	clean(bb, LENGTH);
+	printf("Calling __riscv_memcpy_tagged\n");
+	__riscv_memcpy_tagged(bb, aa, LENGTH * sizeof(long));
+	verify(seed, aa, LENGTH);
+	verify(seed, bb, LENGTH);
+	clean(bb, LENGTH);
+	printf("Calling __riscv_memmove_tagged\n");
+	__riscv_memmove_tagged(bb, aa, LENGTH * sizeof(long));
+	verify(seed, aa, LENGTH);
+	verify(seed, bb, LENGTH);
+	clean(bb, LENGTH);
+	printf("Calling __riscv_memcpy_no_tags\n");
+	__riscv_memcpy_no_tags(bb, aa, LENGTH * sizeof(long));
+	verify(seed, aa, LENGTH);
+	verifyNoTags(seed, bb, LENGTH);
+	printf("Calling __riscv_memmove_no_tags\n");
+	__riscv_memmove_no_tags(bb, aa, LENGTH * sizeof(long));
+	verify(seed, aa, LENGTH);
+	verifyNoTags(seed, bb, LENGTH);
+	memmove(bb, aa, LENGTH * sizeof(long));
 #if LENGTH > 1
 	printf("Moving forward with memmove in-place by one slot...\n");
 	memmove(&bb[1], &bb[0], (LENGTH-1) * sizeof(long));
