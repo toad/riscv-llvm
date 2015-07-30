@@ -3603,6 +3603,8 @@ static RTLIB::Libcall getMemcopyOp(bool isMove, MOVE_TAGS t) {
       return isMove ? RTLIB::MEMMOVE_NO_TAGS : RTLIB::MEMCPY_NO_TAGS;
     case WITH_TAGS:
       return isMove ? RTLIB::MEMMOVE_WITH_TAGS : RTLIB::MEMCPY_WITH_TAGS;
+    default:
+      assert(false && "Invalid MOVE_TAGS value");
   }
 }
 
