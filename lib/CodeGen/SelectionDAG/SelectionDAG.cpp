@@ -4038,7 +4038,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   Entry.Node = Src; Args.push_back(Entry);
   Entry.Node = Size; Args.push_back(Entry);
 
-  llvm::RTLIB::Libcall toCall = getMemcopyOp(true, moveTags);
+  llvm::RTLIB::Libcall toCall = getMemcopyOp(false, moveTags);
   // FIXME: pass in DebugLoc
   TargetLowering::
   CallLoweringInfo CLI(Chain, Type::getVoidTy(*getContext()),
