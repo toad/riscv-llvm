@@ -11,4 +11,7 @@ if ! ./build-and-test.sh; then echo Failed forwards memmove overlapped tags test
 cd ..
 cd MemcpyMemmoveRandomTags
 if ! ./build-and-test.sh; then echo Failed random tags test; exit 3; fi
+cd ..
+cd PartiallyAlignedCopy
+if ! ./build-and-test.sh; then echo Failed partially aligned copy test; exit 3; fi
 echo All tests successful.

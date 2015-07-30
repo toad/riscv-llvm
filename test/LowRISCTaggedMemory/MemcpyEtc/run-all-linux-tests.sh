@@ -2,7 +2,7 @@
 ./lowrisc-memmove-test.sh gcc-linux || exit 1
 $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/memmove1.riscv.linux || exit 2
 cp memmove1.riscv.linux mnt/bin/
-for x in Memcpy MemmoveOverlap MemmoveOverlapForwards MemcpyMemmoveRandomTags
+for x in Memcpy MemmoveOverlap MemmoveOverlapForwards MemcpyMemmoveRandomTags PartiallyAlignedCopy
 do
 	echo Building test $x
 	cd $x
