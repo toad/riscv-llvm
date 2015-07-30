@@ -3687,7 +3687,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
   
-  if(CopyTags == RUNTIME) return Chain;
+  if(CopyTags == RUNTIME) return SDValue();
   assert(CopyTags == NO_TAGS || Align % 8 == 0);
 
   SmallVector<SDValue, 8> OutChains;
@@ -3821,7 +3821,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     }
   }
 
-  if(CopyTags == RUNTIME) return Chain;
+  if(CopyTags == RUNTIME) return SDValue();
   assert(CopyTags == NO_TAGS || Align % 8 == 0);
 
   uint64_t SrcOff = 0, DstOff = 0;
