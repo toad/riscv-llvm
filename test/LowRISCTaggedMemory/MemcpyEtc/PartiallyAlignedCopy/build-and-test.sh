@@ -1,7 +1,7 @@
 #!/bin/bash
-for x in $(seq 3 1000)
+for x in $(seq 0 1000)
 do
-	echo Testing random tags with size $x
+	echo Testing partially aligned copy with size $x
 	./build.sh $x > /dev/null 2>&1 || exit 1
 	if ! spike pk main.riscv | grep Success > /dev/null;
 	then

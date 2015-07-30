@@ -14,7 +14,7 @@ mkdir mnt/bin
 rm -f *.riscv-linux
 rm -f $SCRIPT
 echo "#!/bin/ash" > $SCRIPT
-for x in $(seq 3 100) $(seq 2000 2100)
+for x in $(seq 0 100) $(seq 2000 2100)
 do
 	echo Building $x
 	build $x
