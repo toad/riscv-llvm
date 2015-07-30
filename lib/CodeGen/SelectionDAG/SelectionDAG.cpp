@@ -3714,7 +3714,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       if(CopyTags) {
         errs() << "Trying to add stag in memcpy...\n";
         SmallVector<SDValue, 8> Ops;
-        Ops.push_back(DAG.getSimpleChain(Store, dl)); // Chain: stag must be after store.
+        Ops.push_back(Store); // Chain: stag must be after store.
         // FIXME what's the type for?
         Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_stag, 
                                             TLI.getPointerTy()));
@@ -3734,15 +3734,6 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
 
   return DAG.getNode(ISD::TokenFactor, dl, MVT::Other,
                      &OutChains[0], OutChains.size());
-}
-
-SDValue SelectionDAG::getSimpleChain(SDValue& Store, DebugLoc dl) {
-  // FIXME simplify do we really need to create a TokenFactor here for one arg?
-  // FIXME simplify: Is it safe to just pass new SDValue*[] { Store } ?? Or do we have smartpointers etc?
-  SmallVector<SDValue, 8> TagChainArray;
-  TagChainArray.push_back(Store);
-  return getNode(ISD::TokenFactor, dl, MVT::Other,
-                     &TagChainArray[0], TagChainArray.size());
 }
 
 static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
@@ -3820,8 +3811,8 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       SDValue TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
                                      DAG.getVTList(VT), &Ops[0], Ops.size());
       LoadTagValues.push_back(TagValue);
-      LoadChains.push_back(DAG.getSimpleChain(TagValue,dl));
-      errs() << "Added ltag in memcpy...\n";
+      LoadChains.push_back(TagValue.getValue(1));
+      errs() << "Added ltag in memmove...\n";
     }
     SrcOff += VTSize;
   }
@@ -3841,7 +3832,7 @@ static SDValue getMemmoveLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
     if(CopyTags) {
       errs() << "Trying to add stag in memmove...\n";
       SmallVector<SDValue, 8> Ops;
-      Ops.push_back(DAG.getSimpleChain(Store, dl)); // Chain: stag must be after store.
+      Ops.push_back(Store); // Chain: stag must be after store.
       // FIXME what's the type for?
       Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_stag, 
                                           TLI.getPointerTy()));
