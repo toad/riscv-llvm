@@ -45,8 +45,14 @@ namespace {
     return ConstantInt::get(Type::getInt64Ty(Context), C);
   }
 
-  /* Compute the appropriate tag for a pointer. The outer pointer has been
-   * removed already. */
+  Type* stripPointer(Type *type) {
+    if(isa<PointerType>(type))
+      return ((SequentialType*)type) -> getElementType();
+    else return NULL;
+  }
+
+  /* Compute the appropriate tag to be written or expected for a pointer type. 
+   * The outer pointer has been removed already. */
   IRBuilderBase::LowRISCMemoryTag shouldTagPointerType(Type *type) {
     if(isa<FunctionType>(type)) {
       return IRBuilderBase::TAG_CLEAN_FPTR;
@@ -91,19 +97,71 @@ namespace {
     }
   }
 
-  Type* stripPointer(Type *type) {
-    if(isa<PointerType>(type))
-      return ((SequentialType*)type) -> getElementType();
-    else return NULL;
+  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type);
+
+  /* Compute the correct type for a bare structure. That is, we are writing 
+   * a pointer-sized word directly to a structure, what do we get? A classic 
+   * example is setting the vptr. This is NOT the same as writing a pointer to
+   * a structure. */
+  IRBuilderBase::LowRISCMemoryTag shouldTagStructType(StructType *type) {
+    for(StructType::element_iterator it = type -> element_begin();
+        it != type -> element_end();it++) {
+      // What's the first element?
+      Type *element = *it;
+      if(isa<StructType>(element)) {
+        // A struct consisting of more structs back-to-back.
+        return shouldTagStructType((StructType*)element);
+      } else if(isa<PointerType>(element)) {
+        // First element is a pointer.
+        return shouldTagPointerType(stripPointer(element));
+      } else if(isa<ArrayType>(element)) {
+        // Is an array. We are interested in the first element.
+        return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType());
+      } else if(element->isVoidTy()) {
+        // Placeholder?
+        continue;
+      } else {
+        // Something else. Not of interest.
+        return IRBuilderBase::TAG_NORMAL;
+      }
+    }
+    return IRBuilderBase::TAG_NORMAL;
   }
 
-  /* Strip the outer pointer and call shouldTagPointerType */
-  IRBuilderBase::LowRISCMemoryTag shouldTagType(Type *type) {
+  /* Compute the tag to be expected, if any, for the object of a store or load.
+   * We have stripped the outer pointer and are left with the type of the 
+   * object in memory that we are about to write to / read from. A particularly
+   * important point here: Writing to a structure means writing to its first
+   * element! Same with an array. So e.g. writing to a C++ object with a vptr
+   * usually means writing to its vptr. */
+  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type) {
+    errs() << "shouldTag (word read/write): " << *type << "\n";
+    if(isa<PointerType>(type)) {
+      errs() << "Is a pointer type\n";
+      // Pointer type. May be sensitive.
+      return shouldTagPointerType(stripPointer((PointerType*)type));
+    } else if(isa<StructType>(type)) {
+      errs() << "Is a structure type\n";
+      // Structure. We probably want the first element.
+      return shouldTagStructType((StructType*)type);
+    } else if(isa<ArrayType>(type)) {
+      errs() << "Is an array type\n";
+      // Array. We want the first element.
+      return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType());
+    } else {
+      // Otherwise it's not of interest.
+      return IRBuilderBase::TAG_NORMAL;
+    }
+  }
+
+  /* For an initializer, we don't know the width, and we are only interested
+   * if it's a pointer. */
+  IRBuilderBase::LowRISCMemoryTag shouldTagTypeInitializer(Type *type) {
     Type *innerType = stripPointer(type);
     if(innerType) return shouldTagPointerType(innerType);
     return IRBuilderBase::TAG_NORMAL;
   }
-    
+
   /* LLVM often bitcasts wierd pointers to i8*** etc before storing... */
   bool isInt8Pointer(Type *type) {
     if(isa<PointerType>(type)) {
@@ -205,7 +263,7 @@ namespace {
         // Ignore.
         return false;
       }
-      if(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL) {
+      if(shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL) {
         return true;
       }
       if(isa<BlockAddress>(init)) {
@@ -245,12 +303,12 @@ namespace {
      * Returns a list of pointers to tag. */
     void processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
       if(!checkInitializer(init)) return;
-      if(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL) {
+      if(shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL) {
         errs() << "Adding to initializer because sensitive type: " << getter;
         errs() << "Initializer is " << *init << "\n";
         errs() << "Type is " << init->getType() << "\n";
         builder.CreateRISCVStoreTag(getter,
-              getInt64(shouldTagType(init->getType()), Context));
+              getInt64(shouldTagTypeInitializer(init->getType()), Context));
       }
       errs() << "Processing:\n" << *init << "\n\n";
       if(init->isZeroValue()) {
@@ -289,7 +347,7 @@ namespace {
         // Ignore.
       } else if(isa<Function>(init)) {
         errs() << "**** MUST TAG: Constant is a function!\n";
-        assert(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL);
+        assert(shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL);
         // FIXME GlobalAlias
         // FIXME GlobalObject
       } else {
@@ -437,34 +495,40 @@ namespace {
         //errs() << "Instruction " << inst << "\n";
         if(StoreInst::classof(&inst)) {
           StoreInst& s = (StoreInst&) inst;
+          if(s.getAlignment() != 0 && s.getAlignment() % 8 != 0) continue;
           Value *ptr = s.getPointerOperand();
           Type *type = ptr -> getType();
           errs() << "Detected a store, type: ";
+          type -> print(errs());
+          errs() << "\nStripped: ";
           Type *t = stripPointer(type);
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t);
           if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
-            errs() << "Should tag the store!\n";
+            errs() << "Should tag the load: " << shouldTag << "\n";
             createSTag(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
           LoadInst& l = (LoadInst&) inst;
+          if(l.getAlignment() != 0 && l.getAlignment() % 8 != 0) continue;
           Value *ptr = l.getPointerOperand();
           Type *type = ptr -> getType();
           errs() << "Detected a load, type: ";
+          type -> print(errs());
+          errs() << "\nStripped: ";
           Type *t = stripPointer(type);
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t);
           if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
@@ -472,7 +536,7 @@ namespace {
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
-            errs() << "Should tag the store!\n";
+            errs() << "Should tag the load: " << shouldTag << "\n";
             createCheckTagged(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
             doneSomething = true;
           }
@@ -494,8 +558,11 @@ namespace {
         errs() << "Type is really: ";
         type -> print(errs());
         errs() << "\n";
-        return shouldTagType(type);
-      } else return IRBuilderBase::TAG_NORMAL;
+        Type *stripped = stripPointer(type);
+        if(stripped)
+          return shouldTagTypeOfWord(stripped);
+      }
+      return IRBuilderBase::TAG_NORMAL;
     }
     
     // FIXME lots of duplication getting function-level-or-higher globals here
