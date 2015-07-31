@@ -3,7 +3,9 @@ OWD=$(pwd)
 BUILDWITH=${1:-clang}
 TMP=$(mktemp -d)
 cd $TMP
+for TEST in plain without-tags; do
 cat $TOP/lowrisc-chip/riscv-tools/riscv-gnu-toolchain/build/src/newlib/newlib/testsuite/newlib.string/memmove1.c | sed "s/exit *(0)/printf(\"Success\\\\n\"); exit(0)/" | perl -pe 's/(main .void.)\n/\1/igs' | sed "s/\(main .void.\) *{/\\1 {\n  printf(\"Starting test\\\\n\");/" > memmove1.c
+if test "$TEST" == "without-tags"; then echo Testing with __riscv_memmove_no_tags; sed -i "s/ memmove / __riscv_memmove_no_tags /" memmove1.c; fi
 case "$BUILDWITH" in
 	"clang")
 		echo Building with Clang
@@ -26,6 +28,7 @@ case "$BUILDWITH" in
 		exit 2
 esac
 riscv64-unknown-elf-gcc memmove1.s -o memmove1.riscv
-if spike pk memmove1.riscv | grep Success 2>&1; then echo Successful test; rm -Rf $TMP; else echo Failure; spike pk memmove1.riscv; exit 1; fi
+if spike pk memmove1.riscv | grep Success 2>&1; then echo Successful test; else echo Failure; spike pk memmove1.riscv; exit 1; fi
+done
 cd $OWD
 rm -Rf $TMP
