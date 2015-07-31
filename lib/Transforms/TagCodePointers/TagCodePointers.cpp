@@ -456,9 +456,8 @@ namespace {
           Value *ptr = s.getPointerOperand();
           Type *type = ptr -> getType();
           errs() << "Detected a store, type: ";
-          assert(isa<PointerType>(type) &&
-            "parameter must be a pointer.");
-          PointerType *t = (PointerType*) type;
+          Type *t = stripPointer(type);
+          assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
           IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
@@ -477,9 +476,8 @@ namespace {
           Value *ptr = l.getPointerOperand();
           Type *type = ptr -> getType();
           errs() << "Detected a load, type: ";
-          assert(isa<PointerType>(type) &&
-            "parameter must be a pointer.");
-          PointerType *t = (PointerType*) type;
+          Type *t = stripPointer(type);
+          assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
           IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
