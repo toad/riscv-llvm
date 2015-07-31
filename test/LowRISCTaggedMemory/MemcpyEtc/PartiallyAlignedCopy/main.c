@@ -54,6 +54,51 @@ void verify(long *aa, long *bb, int length, int words) {
 	}
 }
 
+void verifyNoTags(long *aa, long *bb, int length, int words) {
+	printf("Verifying length %d words %d\n", length, words);
+	int i;
+	for(i=0;i<words;i++) {
+		assert(aa[i] == i);
+		assert(((unsigned char)load_tag(&aa[i])) == ((unsigned char)(i << 3)));
+	}
+	if(length % sizeof(long) == 0) {
+		printf("Copied whole words, should NOT have copied tags...\n");
+		for(i=0;i<words;i++) {
+			assert(bb[i] == i);
+			assert(((unsigned char)load_tag(&bb[i])) == 0);
+		}
+	} else {
+		printf("Copied bytes, should NOT have copied tags...\n");
+//		for(i=0;i<words;i++) {
+//			printf("aa[%d] = %ld tag %d\n", i, aa[i], load_tag(&aa[i]));
+//			printf("bb[%d] = %ld tag %d\n", i, bb[i], load_tag(&bb[i]));
+//		}
+		for(i=0;i<words;i++) {
+			assert(load_tag(&bb[i]) == 0);
+			if(i != words-1) assert(bb[i] == aa[i]);
+		}
+	}
+	char *a = aa;
+	char *b = bb;
+	for(i=0;i<length;i++) {
+		//printf("Byte %d: %d = %d\n", i, (int)*a, (int)*b);
+		assert(*a++ == *b++);
+	}
+	for(i=length;i<words*sizeof(long);i++) {
+		assert(*b++ == 0);
+	}
+}
+
+void reset(long *aa, long *bb, int words) {
+	int i;
+	for(i=0;i<words;i++) {
+		aa[i] = i;
+		bb[i] = 0;
+		store_tag(&aa[i], i << 3);
+		store_tag(&bb[i], 0);
+	}
+}
+
 int main(int argc, char **argv) {
 	int WORDS = (LENGTH + sizeof(long) - 1) / 8;
 	int WORDS_WITH_BUMPERS = WORDS+2;
@@ -70,11 +115,7 @@ int main(int argc, char **argv) {
 	long *aa = &a[1];
 	long *bb = &b[1];
 	int i;
-	for(i=0;i<WORDS;i++) {
-		aa[i] = i;
-		bb[i] = 0;
-		store_tag(&aa[i], i << 3);
-	}
+	reset(aa, bb, WORDS);
 	printf("Copying.\n");
 	memcpy(bb, aa, LENGTH);
 	verify(aa, bb, LENGTH, WORDS);
@@ -82,8 +123,27 @@ int main(int argc, char **argv) {
 		bb[i] = 0;
 		store_tag(&bb[i], 0);
 	}
+	printf("Memmove\n");
 	memmove(bb, aa, LENGTH);
 	verify(aa, bb, LENGTH, WORDS);
+	if(LENGTH % 8 == 0) {
+		printf("__riscv_memcpy_tagged\n");
+		reset(aa, bb, WORDS);
+		__riscv_memcpy_tagged(bb, aa, LENGTH);
+		verify(aa, bb, LENGTH, WORDS);
+		printf("__riscv_memmove_tagged\n");
+		reset(aa, bb, WORDS);
+		__riscv_memmove_tagged(bb, aa, LENGTH);
+		verify(aa, bb, LENGTH, WORDS);
+	}
+	printf("Memcpy no tags\n");
+	reset(aa, bb, WORDS);
+	__riscv_memcpy_no_tags(bb, aa, LENGTH);
+	verifyNoTags(aa, bb, LENGTH, WORDS);
+	printf("Memmove no tags\n");
+	reset(aa, bb, WORDS);
+	__riscv_memmove_no_tags(bb, aa, LENGTH);
+	verifyNoTags(aa, bb, LENGTH, WORDS);
 	for(i=0;i<WORDS_WITH_BUMPERS;i++) {
 		store_tag(&a[i], 0);
 		store_tag(&b[i], 0);
