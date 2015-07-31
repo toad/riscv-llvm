@@ -373,7 +373,7 @@ public:
     TAG_INVALID = 3,
     // Lazy tags (bit 2 = set to 0 on write)
     TAG_CLEAN = 4, // -> 0 (dirty)
-    TAG_WRITE_THEN_READ = 6 // not readable until written (then 0)
+    TAG_WRITE_THEN_READ = 6, // not readable until written (then 0)
     TAG_CLEAN_FPTR = 12, // Function pointer
     TAG_CLEAN_PFPTR = 20, // Pointer to function pointer (e.g. vtable)
     TAG_CLEAN_SENSITIVE = 28, // Pointer to structure including function pointer etc
