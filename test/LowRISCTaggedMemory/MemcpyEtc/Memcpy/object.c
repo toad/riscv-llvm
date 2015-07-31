@@ -34,7 +34,7 @@ Object *createEvilObject() {
 	p->fn = evil;
 	p->x = 1;
 #ifdef FAKE_TAGS
-	store_tag(&(p->fn), LAZY_TAG);
+	store_tag(&(p->fn), __RISCV_TAG_CLEAN_FPTR);
 #endif
 	return p;
 };

@@ -43,21 +43,21 @@ int main(int argc, char **argv) {
 	fillArray(p);
 	printf("Calling function on original object...\n");
 #ifndef NO_TAGS
-	assert(load_tag(&(p->fn)) == LAZY_TAG);
+	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	p->fn();
 	Object *q = copyObject(p);
 	checkArray(q);
 	printf("Calling function on memcpy'ed copy of object...\n");
 #ifndef NO_TAGS
-	assert(load_tag(&(p->fn)) == LAZY_TAG);
+	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	q->fn();
 	Object *r = moveObject(p);
 	checkArray(r);
 	printf("Calling function on memmove'ed copy of object...\n");
 #ifndef NO_TAGS
-	assert(load_tag(&(p->fn)) == LAZY_TAG);
+	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	r->fn();
 	printf("Success!\n");
