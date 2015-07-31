@@ -45,13 +45,14 @@ namespace {
     return ConstantInt::get(Type::getInt64Ty(Context), C);
   }
 
-  /* Returns true if the type includes or refers to a function pointer */
-  IRBuilderBase::LowRISCMemoryTag shouldTagType(Type *type) {
+  /* Compute the appropriate tag for a pointer. The outer pointer has been
+   * removed already. */
+  IRBuilderBase::LowRISCMemoryTag shouldTagPointerType(Type *type) {
     if(isa<FunctionType>(type)) {
       return IRBuilderBase::TAG_CLEAN_FPTR;
     } else if(isa<SequentialType>(type)) {
       IRBuilderBase::LowRISCMemoryTag sub = 
-        shouldTagType(((SequentialType*)type) -> getElementType());
+        shouldTagPointerType(((SequentialType*)type) -> getElementType());
       switch(sub) {
         case IRBuilderBase::TAG_CLEAN_FPTR:
         case IRBuilderBase::TAG_CLEAN_PFPTR:
@@ -73,7 +74,7 @@ namespace {
       bool foundVoid = false;
       for(StructType::element_iterator it = s -> element_begin();
           it != s -> element_end();it++) {
-        IRBuilderBase::LowRISCMemoryTag sub = shouldTagType(*it);
+        IRBuilderBase::LowRISCMemoryTag sub = shouldTagPointerType(*it);
         if(TAG_SENSITIVE && (sub == IRBuilderBase::TAG_CLEAN_SENSITIVE || 
            sub == IRBuilderBase::TAG_CLEAN_FPTR)) return sub;
         if(TAG_SENSITIVE_VOID && (sub == IRBuilderBase::TAG_CLEAN_VOIDPTR ||
@@ -86,6 +87,19 @@ namespace {
     } else {
       return IRBuilderBase::TAG_NORMAL;
     }
+  }
+
+  Type* stripPointer(Type *type) {
+    if(isa<PointerType>(type))
+      return ((SequentialType*)type) -> getElementType();
+    else return NULL;
+  }
+
+  /* Strip the outer pointer and call shouldTagPointerType */
+  IRBuilderBase::LowRISCMemoryTag shouldTagType(Type *type) {
+    Type *innerType = stripPointer(type);
+    if(innerType) return shouldTagPointerType(innerType);
+    return IRBuilderBase::TAG_NORMAL;
   }
     
   /* LLVM often bitcasts wierd pointers to i8*** etc before storing... */
@@ -142,7 +156,7 @@ namespace {
           for(std::list<Value*>::iterator it = toTag.begin(); it != toTag.end(); it++) {
             errs() << "Must tag: \n" << **it << "\n\n";
             builder.CreateRISCVStoreTag(*it, 
-              getInt64(shouldTagType((*it)->getType()), Context));
+              getInt64(shouldTagType(stripPointer((*it)->getType())), Context));
           }
         } else {
           errs() << "Declared variable: " << var << "\n";
