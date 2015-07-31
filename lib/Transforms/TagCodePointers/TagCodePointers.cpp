@@ -77,7 +77,8 @@ namespace {
         IRBuilderBase::LowRISCMemoryTag sub = shouldTagPointerType(*it);
         if(TAG_SENSITIVE && (sub == IRBuilderBase::TAG_CLEAN_SENSITIVE || 
            sub == IRBuilderBase::TAG_CLEAN_FPTR || 
-           sub == IRBuilderBase::TAG_CLEAN_PFPTR)) return sub;
+           sub == IRBuilderBase::TAG_CLEAN_PFPTR))
+          return IRBuilderBase::TAG_CLEAN_SENSITIVE;
         if(TAG_SENSITIVE_VOID && (sub == IRBuilderBase::TAG_CLEAN_VOIDPTR ||
            sub == IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID)) foundVoid = true;
       }
