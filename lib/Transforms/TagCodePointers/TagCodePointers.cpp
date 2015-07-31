@@ -31,6 +31,10 @@ using namespace llvm;
 
 /* If true, tag pointers to structures including function pointers. */
 static const bool TAG_SENSITIVE = true;
+/* If true, tag void*. */
+static const bool TAG_VOID = false;
+/* If true, tag pointers to structures including void* pointers. */
+static const bool TAG_SENSITIVE_VOID = false;
 /* If true, tag all pointers */
 static const bool TAG_POINTER = false;
 
@@ -54,19 +58,31 @@ namespace {
           return IRBuilder::TAG_CLEAN_PFPTR;
         case TAG_CLEAN_SENSITIVE:
           return IRBuilder::TAG_CLEAN_SENSITIVE;
+        case TAG_CLEAN_SENSITIVE_VOID:
+          return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
+        case TAG_CLEAN_VOIDPTR:
+          if(TAG_SENSITIVE_VOID)
+            return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
+          // Fall through.
         default:
           if(TAG_POINTER) return TAG_CLEAN_POINTER;
           return sub;
       }
-    } else if((TAG_SENSITIVE) && isa<StructType>(type)) {
+    } else if((TAG_SENSITIVE || TAG_SENSITIVE_VOID) && isa<StructType>(type)) {
       StructType *s = (StructType*) type;
+      bool foundVoid = false;
       for(StructType::element_iterator it = s -> element_begin();
           it != s -> element_end();it++) {
         IRBuilder::LowRISCMemoryTag sub = shouldTagType(*it);
-        if(sub == IRBuilder::TAG_CLEAN_SENSITIVE || 
-           sub == IRBuilder::TAG_CLEAN_FPTR) return sub;
+        if(TAG_SENSITIVE && (sub == IRBuilder::TAG_CLEAN_SENSITIVE || 
+           sub == IRBuilder::TAG_CLEAN_FPTR)) return sub;
+        if(TAG_SENSITIVE_VOID && (sub == IRBuilder::TAG_CLEAN_VOIDPTR ||
+           sub == TAG_CLEAN_SENSITIVE_VOID)) foundVoid = true;
       }
+      if(foundVoid) return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
       return IRBuilder::TAG_NORMAL;
+    } else if(TAG_VOID && type->isVoidTy()) {
+      return IRBuilder::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
     } else {
       return IRBuilder::TAG_NORMAL;
     }

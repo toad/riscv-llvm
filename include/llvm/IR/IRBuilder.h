@@ -376,7 +376,9 @@ public:
     TAG_WRITE_THEN_READ = 6 // not readable until written (then 0)
     TAG_CLEAN_FPTR = 12, // Function pointer
     TAG_CLEAN_PFPTR = 20, // Pointer to function pointer (e.g. vtable)
-    TAG_CLEAN_SENSITIVE = 28, // Pointer to structure including function pointer et
+    TAG_CLEAN_SENSITIVE = 28, // Pointer to structure including function pointer etc
+    TAG_CLEAN_SENSITIVE_VOID = 36, // Pointer to structure including void*
+    TAG_CLEAN_VOIDPTR = 44, // void* (or char*)
     TAG_CLEAN_POINTER = 52 // Any pointer
   };
 
