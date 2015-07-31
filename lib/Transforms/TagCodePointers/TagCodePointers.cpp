@@ -365,19 +365,21 @@ namespace {
         FunctionCheckTagged = f;
         return false;
       }
-      Type *params = { PointerType::getUnqual(IntegerType::get(Context, 8)) };
+      Type *params = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
+                       IntegerType::get(Context, 64) };
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
                                              false);
       f = Function::Create(type, GlobalValue::LinkOnceODRLinkage,
                            "__llvm_riscv_check_tagged", &M);
       Function::arg_iterator args = f->arg_begin();
       Value *ptr = args++;
+      Value *tagval = args++;
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       BasicBlock* onTagged = BasicBlock::Create(Context, "entry", f);
       BasicBlock* onNotTagged = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
       Value *ltag = builder.CreateRISCVLoadTag(ptr);
-      Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, builder.getInt64(IRBuilderBase::TAG_CLEAN));
+      Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, tagval);
       builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
       builder.SetInsertPoint(onTagged);
       builder.CreateRetVoid();
@@ -506,12 +508,13 @@ namespace {
     
     /* Insert stag(ptr, TAG_CLEAN) after the current instruction. */
     void createSTag(BasicBlock::InstListType& instructions, 
-                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
+                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
+                         IRBuilder::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
        "stag only applies to pointers.");
       LLVMContext &Context = M->getContext();
       Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
-      Value *TagValue = getInt64(llvm::IRBuilderBase::TAG_CLEAN, Context);
+      Value *TagValue = getInt64(tag, Context);
       Value *Ops[] = { TagValue, Ptr };
       Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_stag);
       CallInst *CI = CallInst::Create(TheFn, Ops, "");
@@ -521,12 +524,13 @@ namespace {
 
     /* Call __llvm_riscv_check_tagged before the current instruction */
     void createCheckTagged(BasicBlock::InstListType& instructions, 
-                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M) {
+                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
+                         IRBuilder::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
        "stag only applies to pointers.");
       LLVMContext &Context = M->getContext();
       Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
-      Value *Ops[] = { Ptr };
+      Value *Ops[] = { Ptr, getInt64(tag, Context) };
       CallInst *CI = CallInst::Create(getFunctionCheckTagged(), Ops, "");
       instructions.insert(it, CI);
     }
