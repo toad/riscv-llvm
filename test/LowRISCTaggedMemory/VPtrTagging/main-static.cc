@@ -21,8 +21,13 @@ Test *globalPT = &globalT1;
 SubclassTest globalS1;
 Test *globalPS = &globalS1;
 
+// Array of objects
 Test arr[] = { Test(1), Test(2), Test(3) };
+// Array of pointers
 Test *parr[] = { &globalT1, &globalT2, &globalS1 };
+// Pointer to pointer
+Test **pparr = &parr[0];
+Test ***ppparr = &pparr;
 
 int main() {
 	printf("Starting C++ global init test\n");
@@ -38,6 +43,8 @@ int main() {
 	assert(load_tag(&arr[0] == LAZY_TAG);
 	assert(load_tag(&arr[1] == LAZY_TAG);
 	assert(load_tag(&arr[2] == LAZY_TAG);
+	assert(load_tag(&pparr) == LAZY_TAG);
+	assert(load_tag(&ppparr) == LAZY_TAG);
 #endif // CHECK_TAGS
 	printf("Invoking C++ objects...\n");
 	globalT1.print();
