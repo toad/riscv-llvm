@@ -156,12 +156,15 @@ namespace {
     bool checkInitializer(Constant *init) {
       errs() << "Checking initializer " << *init << "\n";
       errs() << "Type is " << *(init->getType()) << "\n";
+      if(init->isZeroValue()) {
+        errs() << "Zero initializer, will be initialized later.\n";
+        // Ignore.
+        return false;
+      }
       if(shouldTagType(init->getType())) {
         return true;
       }
-      if(init->isZeroValue()) {
-        // Ignore.
-      } else if(isa<BlockAddress>(init)) {
+      if(isa<BlockAddress>(init)) {
         return true;
       } else if(isa<ConstantInt>(init)) {
       } else if(isa<ConstantFP>(init)) {
