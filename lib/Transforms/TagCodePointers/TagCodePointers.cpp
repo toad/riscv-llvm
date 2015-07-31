@@ -29,6 +29,11 @@
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 using namespace llvm;
 
+/* If true, tag pointers to structures including function pointers. */
+static const bool TAG_SENSITIVE = true;
+/* If true, tag all pointers */
+static const bool TAG_POINTER = false;
+
 namespace {
 
   /// \brief Get a constant 64-bit value.
@@ -37,20 +42,33 @@ namespace {
   }
 
   /* Returns true if the type includes or refers to a function pointer */
-  bool shouldTagType(Type *type) {
+  IRBuilder::LowRISCMemoryTag shouldTagType(Type *type) {
     if(isa<FunctionType>(type)) {
-      return true;
+      return IRBuilder::TAG_CLEAN_FPTR;
     } else if(isa<SequentialType>(type)) {
-      return shouldTagType(((SequentialType*)type) -> getElementType());
-    } else if(isa<StructType>(type)) {
+      IRBuilder::LowRISCMemoryTag sub = 
+        ((SequentialType*)type) -> getElementType();
+      switch(sub) {
+        case IRBuilder::TAG_CLEAN_FPTR:
+        case IRBuilder::TAG_CLEAN_PFPTR:
+          return IRBuilder::TAG_CLEAN_PFPTR;
+        case TAG_CLEAN_SENSITIVE:
+          return IRBuilder::TAG_CLEAN_SENSITIVE;
+        default:
+          if(TAG_POINTER) return TAG_CLEAN_POINTER;
+          return sub;
+      }
+    } else if((TAG_SENSITIVE) && isa<StructType>(type)) {
       StructType *s = (StructType*) type;
       for(StructType::element_iterator it = s -> element_begin();
           it != s -> element_end();it++) {
-        if(shouldTagType(*it)) return true;
+        IRBuilder::LowRISCMemoryTag sub = shouldTagType(*it);
+        if(sub == IRBuilder::TAG_CLEAN_SENSITIVE || 
+           sub == IRBuilder::TAG_CLEAN_FPTR) return sub;
       }
-      return false;
+      return IRBuilder::TAG_NORMAL;
     } else {
-      return false;
+      return IRBuilder::TAG_NORMAL;
     }
   }
     
@@ -161,7 +179,7 @@ namespace {
         // Ignore.
         return false;
       }
-      if(shouldTagType(init->getType())) {
+      if(shouldTagType(init->getType()) != IRBuilder::TAG_NORMAL) {
         return true;
       }
       if(isa<BlockAddress>(init)) {
@@ -202,7 +220,7 @@ namespace {
     std::list<Value*> processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
       std::list<Value*> grabbers;
       if(!checkInitializer(init)) return grabbers;
-      if(shouldTagType(init->getType())) {
+      if(shouldTagType(init->getType()) != IRBuilder::TAG_NORMAL) {
         errs() << "Adding to initializer because sensitive type: " << getter;
         errs() << "Initializer is " << *init << "\n";
         errs() << "Type is " << init->getType() << "\n";
@@ -412,12 +430,13 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
-          bool shouldTag = shouldTagType(t);
-          if(!shouldTag && isInt8Pointer(t) && isa<Instruction>(ptr)) {
+          IRBuilder::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          if(shouldTag == IRBuilder::TAG_NORMAL && 
+             isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
-          if(shouldTag) {
+          if(shouldTag != IRBuilder::TAG_NORMAL) {
             errs() << "Should tag the store!\n";
             createSTag(instructions, it, ptr, BB.getParent()->getParent());
             doneSomething = true;
@@ -432,13 +451,14 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
-          bool shouldTag = shouldTagType(t);
-          if(!shouldTag && isInt8Pointer(t) && isa<Instruction>(ptr)) {
+          IRBuilder::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          if(shouldTag == IRBuilder::TAG_NORMAL && 
+             isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
-          if(shouldTag) {
+          if(shouldTag != IRBuilder::TAG_NORMAL) {
             errs() << "Should tag the store!\n";
             createCheckTagged(instructions, it, ptr, BB.getParent()->getParent());
             doneSomething = true;
@@ -450,7 +470,7 @@ namespace {
     }
 
     /** Common idiom in generated IR: Bitcast before store. */
-    bool shouldTagBitCastInstruction(Value *ptr) {
+    IRBuilder::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
       // FIXME could this be outside the current basic block??
       // FIXME can we tell in advance or do we need a FunctionPass after all???
       errs() << "Previous instruction: " << *ptr << "\n";
@@ -462,7 +482,7 @@ namespace {
         type -> print(errs());
         errs() << "\n";
         return shouldTagType(type);
-      } else return false;
+      } else return IRBuilder::TAG_NORMAL;
     }
     
     // FIXME lots of duplication getting function-level-or-higher globals here
