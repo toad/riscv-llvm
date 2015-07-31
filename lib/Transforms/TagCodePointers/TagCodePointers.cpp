@@ -154,6 +154,8 @@ namespace {
      * This is separate from the question of whether we need to tag the global
      * variable itself. */
     bool checkInitializer(Constant *init) {
+      errs() << "Checking initializer " << *init << "\n";
+      errs() << "Type is " << *(init->getType()) << "\n";
       if(shouldTagType(init->getType())) {
         return true;
       }
