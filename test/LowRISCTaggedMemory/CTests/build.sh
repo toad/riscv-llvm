@@ -16,20 +16,20 @@ case $1 in
 		# Build with GCC, set the tags manually.
 		# Should work.
 		build=gcc
-		VARIABLES="$VARIABLES -DFAKE_TAGS"
+		VARIABLES="$VARIABLES -DFAKE_TAGS -D__TAGGED_MEMORY__"
 		;;
 	gcc-fail-tags)
 		# Build with GCC, and check for tags.
 		# Should fail because GCC doesn't set them.
 		build=gcc
-		VARIABLES="$VARIABLES"
+		VARIABLES="$VARIABLES -D__TAGGED_MEMORY__"
 		;;
 	gcc-linux)
 		# Build with GCC for a booted Linux system, with fake tags.
 		# Should succeed.
 		# Harder to run.
 		build=gcc-linux
-		VARIABLES="$VARIABLES -DFAKE_TAGS"
+		VARIABLES="$VARIABLES -DFAKE_TAGS -D__TAGGED_MEMORY__"
 		;;
 	*)
 		echo "./build.sh BUILDTYPE"
