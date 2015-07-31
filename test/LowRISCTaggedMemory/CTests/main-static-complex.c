@@ -27,14 +27,14 @@ void (*mutableFNs[])() = { nice1, nice2 };
 
 int main(int argc, char **argv) {
 #ifdef FAKE_TAGS
-	store_tag(&mutableFNs, LAZY_TAG);
-	store_tag(&mutableFNs[0], LAZY_TAG);
-	store_tag(&mutableFNs[1], LAZY_TAG);
+	store_tag(&mutableFNs, __RISCV_TAG_CLEAN_FPTR);
+	store_tag(&mutableFNs[0], __RISCV_TAG_CLEAN_FPTR);
+	store_tag(&mutableFNs[1], __RISCV_TAG_CLEAN_FPTR);
 #endif
 #ifndef NO_TAGS
-	assert(load_tag(&mutableFNs) == LAZY_TAG);
-	assert(load_tag(&mutableFNs[0]) == LAZY_TAG);
-	assert(load_tag(&mutableFNs[1]) == LAZY_TAG);
+	assert(load_tag(&mutableFNs) == __RISCV_TAG_CLEAN_FPTR);
+	assert(load_tag(&mutableFNs[0]) == __RISCV_TAG_CLEAN_FPTR);
+	assert(load_tag(&mutableFNs[1]) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	mutableFNs[0]();
 	mutableFNs[1]();
@@ -44,14 +44,14 @@ int main(int argc, char **argv) {
 	mutableFNs[0] = q;
 	mutableFNs[1] = p;
 #ifdef FAKE_TAGS
-	store_tag(&mutableFNs, LAZY_TAG);
-	store_tag(&mutableFNs[0], LAZY_TAG);
-	store_tag(&mutableFNs[1], LAZY_TAG);
+	store_tag(&mutableFNs, __RISCV_TAG_CLEAN_FPTR);
+	store_tag(&mutableFNs[0], __RISCV_TAG_CLEAN_FPTR);
+	store_tag(&mutableFNs[1], __RISCV_TAG_CLEAN_FPTR);
 #endif
 #ifndef NO_TAGS
-	assert(load_tag(&mutableFNs) == LAZY_TAG);
-	assert(load_tag(&mutableFNs[0]) == LAZY_TAG);
-	assert(load_tag(&mutableFNs[1]) == LAZY_TAG);
+	assert(load_tag(&mutableFNs) == __RISCV_TAG_CLEAN_FPTR);
+	assert(load_tag(&mutableFNs[0]) == __RISCV_TAG_CLEAN_FPTR);
+	assert(load_tag(&mutableFNs[1]) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	mutableFNs[0]();
 	mutableFNs[1]();

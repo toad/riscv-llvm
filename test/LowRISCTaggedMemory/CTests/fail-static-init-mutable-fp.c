@@ -24,10 +24,10 @@ void (*mutableFN)() = nice;
 int main(int argc, char **argv) {
 	printf("Calling function\n");
 #ifdef FAKE_TAGS
-	store_tag(&mutableFN, LAZY_TAG);
+	store_tag(&mutableFN, __RISCV_TAG_CLEAN_FPTR);
 #endif
 #ifndef NO_TAGS
-	assert(load_tag(&mutableFN) == LAZY_TAG);
+	assert(load_tag(&mutableFN) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	mutableFN();
 	printf("Changing function pointer\n");

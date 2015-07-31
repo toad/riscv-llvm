@@ -22,17 +22,18 @@ void (****ppppfn)() = &pppfn;
 
 int main(int argc, char **argv) {
 #ifdef FAKE_TAGS
-	store_tag(&pfn, LAZY_TAG);
-	store_tag(&ppfn, LAZY_TAG);
-	store_tag(&pppfn, LAZY_TAG);
-	store_tag(&ppppfn, LAZY_TAG);
+	store_tag(&pfn, __RISCV_TAG_CLEAN_FPTR);
+	store_tag(&ppfn, __RISCV_TAG_CLEAN_PFPTR);
+	store_tag(&pppfn, __RISCV_TAG_CLEAN_PFPTR);
+	store_tag(&ppppfn, __RISCV_TAG_CLEAN_PFPTR);
 #endif
 #ifndef NO_TAGS
-	assert(load_tag(&pfn) == LAZY_TAG);
-	assert(load_tag(&ppfn) == LAZY_TAG);
-	assert(load_tag(&pppfn) == LAZY_TAG);
-	assert(load_tag(&ppppfn) == LAZY_TAG);
+	assert(load_tag(&pfn) == __RISCV_TAG_CLEAN_FPTR);
+	assert(load_tag(&ppfn) == __RISCV_TAG_CLEAN_PFPTR);
+	assert(load_tag(&pppfn) == __RISCV_TAG_CLEAN_PFPTR);
+	assert(load_tag(&ppppfn) == __RISCV_TAG_CLEAN_PFPTR);
 #endif
+	printf("Calling function\n");
 	pfn();
 	(*ppfn)();
 	(**ppfn)();
