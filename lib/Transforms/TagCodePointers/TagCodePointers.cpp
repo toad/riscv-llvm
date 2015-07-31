@@ -119,8 +119,6 @@ namespace {
       BasicBlock* entry = BasicBlock::Create(Context, "entry", init);
       IRBuilder<> builder(entry);
 
-      Value *TagValue = getInt64(llvm::IRBuilderBase::TAG_CLEAN, Context);
-
       errs() << "Function at start: \n" << *init << "\n";
 
       for(Module::GlobalListType::iterator it = M.getGlobalList().begin();
@@ -143,7 +141,8 @@ namespace {
           std::list<Value*> toTag = processInitializer(initializer, &var, Context, builder);
           for(std::list<Value*>::iterator it = toTag.begin(); it != toTag.end(); it++) {
             errs() << "Must tag: \n" << **it << "\n\n";
-            builder.CreateRISCVStoreTag(*it, TagValue);
+            builder.CreateRISCVStoreTag(*it, 
+              getInt64(shouldTagType((*it)->getType()), Context));
           }
         } else {
           errs() << "Declared variable: " << var << "\n";
