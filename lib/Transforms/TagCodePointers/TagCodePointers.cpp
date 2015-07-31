@@ -36,6 +36,33 @@ namespace {
     return ConstantInt::get(Type::getInt64Ty(Context), C);
   }
 
+  /* Returns true if the type includes or refers to a function pointer */
+  bool shouldTagType(Type *type) {
+    if(isa<FunctionType>(type)) {
+      return true;
+    } else if(isa<SequentialType>(type)) {
+      return shouldTagType(((SequentialType*)type) -> getElementType());
+    } else if(isa<StructType>(type)) {
+      StructType *s = (StructType*) type;
+      for(StructType::element_iterator it = s -> element_begin();
+          it != s -> element_end();) {
+        if(shouldTagType(*it)) return true;
+      }
+      return false;
+    } else {
+      return false;
+    }
+  }
+    
+  /* LLVM often bitcasts wierd pointers to i8*** etc before storing... */
+  bool isInt8Pointer(Type *type) {
+    if(isa<PointerType>(type)) {
+      return isInt8Pointer(((PointerType*)type) -> getElementType());
+    } else if(isa<IntegerType>(type)) {
+      return ((IntegerType*)type)->getBitWidth() == 8;
+    } else return false;
+  }
+
   struct TagCodePointersBase : public ModulePass {
     static char ID; // Pass identification, replacement for typeid
     TagCodePointersBase() : ModulePass(ID) {}
@@ -69,6 +96,7 @@ namespace {
           errs() << "Initialized variable: " << var << "\n";
           errs() << "Type is " << *var.getType() << "\n";
           Constant *initializer = var.getInitializer();
+          errs() << "Initializer is " << *initializer << "\n";
           if(!checkInitializer(initializer)) continue;
           // FIXME probably need to pass builder in?
           std::list<Value*> toTag = processInitializer(initializer, &var, Context, builder);
@@ -115,8 +143,13 @@ namespace {
       return false;
     }
 
+    /* Do we need to tag anything created during the initializer?
+     * This is separate from the question of whether we need to tag the global
+     * variable itself. */
     bool checkInitializer(Constant *init) {
-      std::list<Value*> grabbers;
+      if(shouldTagType(init->getType())) {
+        return true;
+      }
       if(init->isZeroValue()) {
         // Ignore.
       } else if(isa<BlockAddress>(init)) {
@@ -139,7 +172,8 @@ namespace {
         } // Else assume it's harmless...
       } else if(isa<UndefValue>(init)) {
       } else if(isa<GlobalVariable>(init)) {
-        // Ignore.
+        // Ignore. We will have tagged it already.
+        errs() << "Is global variable\n";
       } else if(isa<Function>(init)) {
         return true;
         // FIXME GlobalAlias
@@ -151,16 +185,20 @@ namespace {
       return false;
     }
 
+    /* Find anything inside the initializer that needs tagging. 
+     * Returns a list of pointers to tag. */
     std::list<Value*> processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
       std::list<Value*> grabbers;
       if(!checkInitializer(init)) return grabbers;
+      if(shouldTagType(init->getType())) {
+        errs() << "Adding to initializer because sensitive type: " << getter;
+        errs() << "Initializer is " << *init << "\n";
+        errs() << "Type is " << init->getType() << "\n";
+        grabbers.push_front(getter);
+      }
       errs() << "Processing:\n" << *init << "\n\n";
       if(init->isZeroValue()) {
         errs() << "Constant is zero/null, ignoring...\n";
-      } else if(isa<BlockAddress>(init)) {
-        errs() << "**** MUST TAG: Constant is a block address!\n";
-        grabbers.push_front(getter);
-        return grabbers;
       } else if(isa<ConstantInt>(init)) {
         errs() << "Constant integer, ignoring...\n";
       } else if(isa<ConstantFP>(init)) {
@@ -169,13 +207,16 @@ namespace {
         errs() << "Constant aggregate zero, ignoring...\n";
       } else if(isa<ConstantArray>(init)) {
         errs() << "Constant is an array, must descend...\n";
-        return processOperands(init, getter, Context, builder);
+        std::list<Value*> sub = processOperands(init, getter, Context, builder);
+        grabbers.splice(grabbers.begin(), sub);
       } else if(isa<ConstantStruct>(init)) {
         errs() << "Constant is a struct, must descend...\n";
-        return processOperands(init, getter, Context, builder);
+        std::list<Value*> sub = processOperands(init, getter, Context, builder);
+        grabbers.splice(grabbers.begin(), sub);
       } else if(isa<ConstantVector>(init)) {
         errs() << "Constant is a vector, must descend...\n";
-        return processOperands(init, getter, Context, builder);
+        std::list<Value*> sub = processOperands(init, getter, Context, builder);
+        grabbers.splice(grabbers.begin(), sub);
       } else if(isa<ConstantDataSequential>(init)) {
         errs() << "Constant is a constant data sequence...\n";
       } else if(isa<ConstantExpr>(init)) {
@@ -186,7 +227,8 @@ namespace {
           errs() << "Constant is a cast...\n";
           Value *op = (Constant*) (expr->getOperand(0));
           // Cast is irrelevant, we will need to cast at the end anyway.
-          return processInitializer((Constant*)op, getter, Context, builder);
+          std::list<Value*> sub = processInitializer((Constant*)op, getter, Context, builder);
+          grabbers.splice(grabbers.begin(), sub);
         } // Else assume it's harmless...
       } else if(isa<UndefValue>(init)) {
         errs() << "Constant is undefined...\n";
@@ -195,8 +237,7 @@ namespace {
         // Ignore.
       } else if(isa<Function>(init)) {
         errs() << "**** MUST TAG: Constant is a function!\n";
-        grabbers.push_front(getter);
-        return grabbers;
+        assert(grabbers.size() == 1);
         // FIXME GlobalAlias
         // FIXME GlobalObject
       } else {
@@ -394,33 +435,6 @@ namespace {
       }
       getFunctionCheckTagged();
       return doneSomething;
-    }
-
-    /* Returns true if the type includes or refers to a function pointer */
-    bool shouldTagType(Type *type) {
-      if(isa<FunctionType>(type)) {
-        return true;
-      } else if(isa<SequentialType>(type)) {
-        return shouldTagType(((SequentialType*)type) -> getElementType());
-      } else if(isa<StructType>(type)) {
-        StructType *s = (StructType*) type;
-        for(StructType::element_iterator it = s -> element_begin();
-            it != s -> element_end();) {
-          if(shouldTagType(*it)) return true;
-        }
-        return false;
-      } else {
-        return false;
-      }
-    }
-    
-    /* LLVM often bitcasts wierd pointers to i8*** etc before storing... */
-    bool isInt8Pointer(Type *type) {
-      if(isa<PointerType>(type)) {
-        return isInt8Pointer(((PointerType*)type) -> getElementType());
-      } else if(isa<IntegerType>(type)) {
-        return ((IntegerType*)type)->getBitWidth() == 8;
-      } else return false;
     }
 
     /** Common idiom in generated IR: Bitcast before store. */
