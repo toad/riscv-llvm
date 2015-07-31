@@ -46,26 +46,26 @@ namespace {
   }
 
   /* Returns true if the type includes or refers to a function pointer */
-  IRBuilder::LowRISCMemoryTag shouldTagType(Type *type) {
+  IRBuilderBase::LowRISCMemoryTag shouldTagType(Type *type) {
     if(isa<FunctionType>(type)) {
-      return IRBuilder::TAG_CLEAN_FPTR;
+      return IRBuilderBase::TAG_CLEAN_FPTR;
     } else if(isa<SequentialType>(type)) {
-      IRBuilder::LowRISCMemoryTag sub = 
-        ((SequentialType*)type) -> getElementType();
+      IRBuilderBase::LowRISCMemoryTag sub = 
+        shouldTagType(((SequentialType*)type) -> getElementType());
       switch(sub) {
-        case IRBuilder::TAG_CLEAN_FPTR:
-        case IRBuilder::TAG_CLEAN_PFPTR:
-          return IRBuilder::TAG_CLEAN_PFPTR;
-        case TAG_CLEAN_SENSITIVE:
-          return IRBuilder::TAG_CLEAN_SENSITIVE;
-        case TAG_CLEAN_SENSITIVE_VOID:
-          return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
-        case TAG_CLEAN_VOIDPTR:
+        case IRBuilderBase::TAG_CLEAN_FPTR:
+        case IRBuilderBase::TAG_CLEAN_PFPTR:
+          return IRBuilderBase::TAG_CLEAN_PFPTR;
+        case IRBuilderBase::TAG_CLEAN_SENSITIVE:
+          return IRBuilderBase::TAG_CLEAN_SENSITIVE;
+        case IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID:
+          return IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID;
+        case IRBuilderBase::TAG_CLEAN_VOIDPTR:
           if(TAG_SENSITIVE_VOID)
-            return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
+            return IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID;
           // Fall through.
         default:
-          if(TAG_POINTER) return TAG_CLEAN_POINTER;
+          if(TAG_POINTER) return IRBuilderBase::TAG_CLEAN_POINTER;
           return sub;
       }
     } else if((TAG_SENSITIVE || TAG_SENSITIVE_VOID) && isa<StructType>(type)) {
@@ -73,18 +73,18 @@ namespace {
       bool foundVoid = false;
       for(StructType::element_iterator it = s -> element_begin();
           it != s -> element_end();it++) {
-        IRBuilder::LowRISCMemoryTag sub = shouldTagType(*it);
-        if(TAG_SENSITIVE && (sub == IRBuilder::TAG_CLEAN_SENSITIVE || 
-           sub == IRBuilder::TAG_CLEAN_FPTR)) return sub;
-        if(TAG_SENSITIVE_VOID && (sub == IRBuilder::TAG_CLEAN_VOIDPTR ||
-           sub == TAG_CLEAN_SENSITIVE_VOID)) foundVoid = true;
+        IRBuilderBase::LowRISCMemoryTag sub = shouldTagType(*it);
+        if(TAG_SENSITIVE && (sub == IRBuilderBase::TAG_CLEAN_SENSITIVE || 
+           sub == IRBuilderBase::TAG_CLEAN_FPTR)) return sub;
+        if(TAG_SENSITIVE_VOID && (sub == IRBuilderBase::TAG_CLEAN_VOIDPTR ||
+           sub == IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID)) foundVoid = true;
       }
-      if(foundVoid) return IRBuilder::TAG_CLEAN_SENSITIVE_VOID;
-      return IRBuilder::TAG_NORMAL;
+      if(foundVoid) return IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID;
+      return IRBuilderBase::TAG_NORMAL;
     } else if(TAG_VOID && type->isVoidTy()) {
-      return IRBuilder::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
+      return IRBuilderBase::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
     } else {
-      return IRBuilder::TAG_NORMAL;
+      return IRBuilderBase::TAG_NORMAL;
     }
   }
     
@@ -195,7 +195,7 @@ namespace {
         // Ignore.
         return false;
       }
-      if(shouldTagType(init->getType()) != IRBuilder::TAG_NORMAL) {
+      if(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL) {
         return true;
       }
       if(isa<BlockAddress>(init)) {
@@ -236,7 +236,7 @@ namespace {
     std::list<Value*> processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
       std::list<Value*> grabbers;
       if(!checkInitializer(init)) return grabbers;
-      if(shouldTagType(init->getType()) != IRBuilder::TAG_NORMAL) {
+      if(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL) {
         errs() << "Adding to initializer because sensitive type: " << getter;
         errs() << "Initializer is " << *init << "\n";
         errs() << "Type is " << init->getType() << "\n";
@@ -365,7 +365,7 @@ namespace {
         FunctionCheckTagged = f;
         return false;
       }
-      Type *params = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
+      Type *params[] = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
                        IntegerType::get(Context, 64) };
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
                                              false);
@@ -448,15 +448,15 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
-          IRBuilder::LowRISCMemoryTag shouldTag = shouldTagType(t);
-          if(shouldTag == IRBuilder::TAG_NORMAL && 
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
-          if(shouldTag != IRBuilder::TAG_NORMAL) {
+          if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the store!\n";
-            createSTag(instructions, it, ptr, BB.getParent()->getParent());
+            createSTag(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
@@ -469,16 +469,16 @@ namespace {
           PointerType *t = (PointerType*) type;
           t -> print(errs());
           errs() << "\n";
-          IRBuilder::LowRISCMemoryTag shouldTag = shouldTagType(t);
-          if(shouldTag == IRBuilder::TAG_NORMAL && 
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagType(t);
+          if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
             assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
-          if(shouldTag != IRBuilder::TAG_NORMAL) {
+          if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the store!\n";
-            createCheckTagged(instructions, it, ptr, BB.getParent()->getParent());
+            createCheckTagged(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
             doneSomething = true;
           }
         }
@@ -488,7 +488,7 @@ namespace {
     }
 
     /** Common idiom in generated IR: Bitcast before store. */
-    IRBuilder::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
+    IRBuilderBase::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
       // FIXME could this be outside the current basic block??
       // FIXME can we tell in advance or do we need a FunctionPass after all???
       errs() << "Previous instruction: " << *ptr << "\n";
@@ -500,7 +500,7 @@ namespace {
         type -> print(errs());
         errs() << "\n";
         return shouldTagType(type);
-      } else return IRBuilder::TAG_NORMAL;
+      } else return IRBuilderBase::TAG_NORMAL;
     }
     
     // FIXME lots of duplication getting function-level-or-higher globals here
@@ -509,7 +509,7 @@ namespace {
     /* Insert stag(ptr, TAG_CLEAN) after the current instruction. */
     void createSTag(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
-                         IRBuilder::LowRISCMemoryTag tag) {
+                         IRBuilderBase::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
        "stag only applies to pointers.");
       LLVMContext &Context = M->getContext();
@@ -525,7 +525,7 @@ namespace {
     /* Call __llvm_riscv_check_tagged before the current instruction */
     void createCheckTagged(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
-                         IRBuilder::LowRISCMemoryTag tag) {
+                         IRBuilderBase::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
        "stag only applies to pointers.");
       LLVMContext &Context = M->getContext();
