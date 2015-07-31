@@ -28,7 +28,7 @@ int main() {
 	assert(load_tag((void*)t) == __RISCV_TAG_CLEAN_PFPTR && "Object vtable pointer is tagged");
 	void *vtable = *((void**) t);
 	printf("Vtable is at %p\n", vtable);
-	assert(load_tag((void*)vtable) == __RISCV_TAG_CLEAN_PFPTR && "Object vtable first entry is tagged");
+	assert(load_tag((void*)vtable) == __RISCV_TAG_CLEAN_FPTR && "Object vtable first entry is tagged");
 #endif
 	printf("Calling method on object...\n");
 	t -> print();
