@@ -153,12 +153,7 @@ namespace {
           errs() << "Initializer is " << *initializer << "\n";
           if(!checkInitializer(initializer)) continue;
           // FIXME probably need to pass builder in?
-          std::list<Value*> toTag = processInitializer(initializer, &var, Context, builder);
-          for(std::list<Value*>::iterator it = toTag.begin(); it != toTag.end(); it++) {
-            errs() << "Must tag: \n" << **it << "\n\n";
-            builder.CreateRISCVStoreTag(*it, 
-              getInt64(shouldTagType(stripPointer((*it)->getType())), Context));
-          }
+          processInitializer(initializer, &var, Context, builder);
         } else {
           errs() << "Declared variable: " << var << "\n";
         }
@@ -247,14 +242,14 @@ namespace {
 
     /* Find anything inside the initializer that needs tagging. 
      * Returns a list of pointers to tag. */
-    std::list<Value*> processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
-      std::list<Value*> grabbers;
-      if(!checkInitializer(init)) return grabbers;
+    void processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
+      if(!checkInitializer(init)) return;
       if(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL) {
         errs() << "Adding to initializer because sensitive type: " << getter;
         errs() << "Initializer is " << *init << "\n";
         errs() << "Type is " << init->getType() << "\n";
-        grabbers.push_front(getter);
+        builder.CreateRISCVStoreTag(getter,
+              getInt64(shouldTagType(init->getType()), Context));
       }
       errs() << "Processing:\n" << *init << "\n\n";
       if(init->isZeroValue()) {
@@ -267,16 +262,13 @@ namespace {
         errs() << "Constant aggregate zero, ignoring...\n";
       } else if(isa<ConstantArray>(init)) {
         errs() << "Constant is an array, must descend...\n";
-        std::list<Value*> sub = processOperands(init, getter, Context, builder);
-        grabbers.splice(grabbers.begin(), sub);
+        processOperands(init, getter, Context, builder);
       } else if(isa<ConstantStruct>(init)) {
         errs() << "Constant is a struct, must descend...\n";
-        std::list<Value*> sub = processOperands(init, getter, Context, builder);
-        grabbers.splice(grabbers.begin(), sub);
+        processOperands(init, getter, Context, builder);
       } else if(isa<ConstantVector>(init)) {
         errs() << "Constant is a vector, must descend...\n";
-        std::list<Value*> sub = processOperands(init, getter, Context, builder);
-        grabbers.splice(grabbers.begin(), sub);
+        processOperands(init, getter, Context, builder);
       } else if(isa<ConstantDataSequential>(init)) {
         errs() << "Constant is a constant data sequence...\n";
       } else if(isa<ConstantExpr>(init)) {
@@ -287,8 +279,7 @@ namespace {
           errs() << "Constant is a cast...\n";
           Value *op = (Constant*) (expr->getOperand(0));
           // Cast is irrelevant, we will need to cast at the end anyway.
-          std::list<Value*> sub = processInitializer((Constant*)op, getter, Context, builder);
-          grabbers.splice(grabbers.begin(), sub);
+          processInitializer((Constant*)op, getter, Context, builder);
         } // Else assume it's harmless...
       } else if(isa<UndefValue>(init)) {
         errs() << "Constant is undefined...\n";
@@ -297,18 +288,16 @@ namespace {
         // Ignore.
       } else if(isa<Function>(init)) {
         errs() << "**** MUST TAG: Constant is a function!\n";
-        assert(grabbers.size() == 1);
+        assert(shouldTagType(init->getType()) != IRBuilderBase::TAG_NORMAL);
         // FIXME GlobalAlias
         // FIXME GlobalObject
       } else {
         errs() << "**** Constant is unrecognised!\n";
         errs() << *init << "\n\n";
       }
-      return grabbers;
     }
 
-    std::list<Value*> processOperands(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
-      std::list<Value*> grabbers;
+    void processOperands(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
       for(unsigned i=0;i<init->getNumOperands();i++) {
         errs() << "Processing aggregate parameter " << i << "\n";
         Value *v = init->getOperand(i);
@@ -320,15 +309,12 @@ namespace {
           std::vector<Value*> args;
           args.push_back(getInt64(0, Context)); // Dereference pointer to structure.
           args.push_back(getInt64(i, Context)); // Choose element.
-          std::list<Value*> sub = processMoreOperands((Constant*)v, getter, args, Context, builder);
-          grabbers.splice(grabbers.begin(), sub);
+          processMoreOperands((Constant*)v, getter, args, Context, builder);
         }
       }
-      return grabbers;
     }
     
-    std::list<Value*> processMoreOperands(Constant *init, Value *getter, std::vector<Value*> derefSoFar, LLVMContext &Context, IRBuilder<> builder) {
-      std::list<Value*> grabbers;
+    void processMoreOperands(Constant *init, Value *getter, std::vector<Value*> derefSoFar, LLVMContext &Context, IRBuilder<> builder) {
       if(isa<ConstantArray>(init) || isa<ConstantVector>(init) || isa<ConstantStruct>(init)) {
         std::vector<Value*> deref = derefSoFar;
         // Dereference more levels of nested (but packed!) array/structure...
@@ -339,9 +325,7 @@ namespace {
           if(!checkInitializer(c)) continue;
           errs() << "Parameter is (processing more operands):\n" << *v << "\n";
           deref.push_back(getInt64(i, Context));
-          std::list<Value*> sub = 
-            processMoreOperands(c, getter, deref, Context, builder);
-          grabbers.splice(grabbers.begin(), sub);
+          processMoreOperands(c, getter, deref, Context, builder);
         }
       } else {
         errs() << "Creating GetElementPtrInst from:\n";
@@ -353,10 +337,8 @@ namespace {
         }
         Value *newGetter = builder.CreateGEP(getter, derefSoFar);
         errs() << "Getter is " << *newGetter << "\n";
-        std::list<Value*> sub = processInitializer(init, newGetter, Context, builder);
-        grabbers.splice(grabbers.begin(), sub);
+        processInitializer(init, newGetter, Context, builder);
       }
-      return grabbers;
     }
 
     bool checkOperands(Constant *init) {
