@@ -1,5 +1,5 @@
 #!/bin/bash
-./build.sh
+if ! ./build.sh; then echo Build failed; exit 100; fi
 # Unfortunately all of these have different success conditions...
 # When new tests are added they will need to be added here.
 if ! spike pk test-main-bogus-vptr.cc.gcc.riscv 2>&1 | grep "Misaligned load"; then echo "GCC bogus vptr test should give misaligned load"; exit 1; fi
