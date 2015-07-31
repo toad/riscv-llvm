@@ -16,4 +16,6 @@ if ! spike pk test-main-simple.cc.gcc.riscv | grep "Success"; then echo "GCC fai
 if ! spike pk test-main-simple.cc.clang.riscv | grep "Success"; then echo "Clang failed simple object test"; exit 11; fi
 if ! spike pk test-main-vtable-replacement.cc.gcc.riscv | grep "Installing rootkit"; then echo "GCC didn't run \"malicious\" payload as expected in vtable replacement test?"; exit 12; fi 
 if spike pk test-main-vtable-replacement.cc.clang.riscv | grep "Installing rootkit"; then echo "Clang didn't prevent \"malicious\" payload from running!"; exit 13; fi
+if ! spike pk test-main-static.cc.gcc.riscv | grep Success; then echo "Unable to statically initialize objects in GCC"; exit 14; fi
+if ! spike pk test-main-static.cc.clang.riscv | grep Success; then echo "Unable to statically initialize objects in Clang"; exit 15; fi
 echo All tests successful.
