@@ -45,7 +45,7 @@ namespace {
     } else if(isa<StructType>(type)) {
       StructType *s = (StructType*) type;
       for(StructType::element_iterator it = s -> element_begin();
-          it != s -> element_end();) {
+          it != s -> element_end();it++) {
         if(shouldTagType(*it)) return true;
       }
       return false;
