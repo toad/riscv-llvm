@@ -1,0 +1,19 @@
+#!/bin/bash
+./build.sh
+# Unfortunately all of these have different success conditions...
+# When new tests are added they will need to be added here.
+if ! spike pk test-main-bogus-vptr.cc.gcc.riscv 2>&1 | grep "Misaligned load"; then echo "GCC bogus vptr test should give misaligned load"; exit 1; fi
+if spike pk test-main-bogus-vptr.cc.clang.riscv 2>&1 | grep "Misaligned load"; then echo "Clang should prevent misaligned load"; exit 2; fi
+# Check for it actually completing too.
+if spike pk test-main-bogus-vptr.cc.clang.riscv 2>&1 | grep "FAILURE"; then echo "Clang should prevent misaligned load"; exit 3; fi
+if ! spike pk test-main-bogus-vtable.cc.gcc.riscv | grep "Installing rootkit"; then echo "GCC bogus vtable test should run \"malicious\" code"; exit 4; fi
+if spike pk test-main-bogus-vtable.cc.clang.riscv | grep "Installing rootkit"; then echo "Clang should prevent \"malicious\" code from running!"; exit 5; fi
+if ! spike pk test-main-iostreams.cc.gcc.riscv | grep "Hello world"; then echo "Static initialisers broken with gcc"; exit 6; fi
+if ! spike pk test-main-iostreams.cc.clang.riscv | grep "Hello world"; then echo "Static initialisers broken with Clang"; exit 7; fi
+if ! spike pk test-main-read-only-vptr.cc.gcc.riscv 2>&1 | grep "Misaligned load"; then echo "GCC vptr overwriting test should give misaligned load"; exit 8; fi
+if spike pk test-main-read-only-vptr.cc.clang.riscv 2>&1 | grep "Misaligned load"; then echo "Clang vptr overwriting test should prevent misaligned load"; exit 9; fi
+if ! spike pk test-main-simple.cc.gcc.riscv | grep "Success"; then echo "GCC failed simple object test"; exit 10; fi
+if ! spike pk test-main-simple.cc.clang.riscv | grep "Success"; then echo "Clang failed simple object test"; exit 11; fi
+if ! spike pk test-main-vtable-replacement.cc.gcc.riscv | grep "Installing rootkit"; then echo "GCC didn't run \"malicious\" payload as expected in vtable replacement test?"; exit 12; fi 
+if spike pk test-main-vtable-replacement.cc.clang.riscv | grep "Installing rootkit"; then echo "Clang didn't prevent \"malicious\" payload from running!"; exit 13; fi
+echo All tests successful.
