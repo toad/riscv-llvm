@@ -211,8 +211,7 @@ namespace {
           Constant *initializer = var.getInitializer();
           errs() << "Initializer is " << *initializer << "\n";
           if(!checkInitializer(initializer)) continue;
-          // FIXME probably need to pass builder in?
-          processInitializer(initializer, &var, Context, builder);
+          processInitializer(initializer, &var, Context, builder, false);
         } else {
           errs() << "Declared variable: " << var << "\n";
         }
@@ -301,14 +300,16 @@ namespace {
 
     /* Find anything inside the initializer that needs tagging. 
      * Returns a list of pointers to tag. */
-    void processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
+    void processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder, bool addedAlready) {
       if(!checkInitializer(init)) return;
-      if(shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL) {
+      if(!addedAlready && 
+        (shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL)) {
         errs() << "Adding to initializer because sensitive type: " << getter;
         errs() << "Initializer is " << *init << "\n";
         errs() << "Type is " << init->getType() << "\n";
         builder.CreateRISCVStoreTag(getter,
               getInt64(shouldTagTypeInitializer(init->getType()), Context));
+        addedAlready = true;
       }
       errs() << "Processing:\n" << *init << "\n\n";
       if(init->isZeroValue()) {
@@ -338,7 +339,7 @@ namespace {
           errs() << "Constant is a cast...\n";
           Value *op = (Constant*) (expr->getOperand(0));
           // Cast is irrelevant, we will need to cast at the end anyway.
-          processInitializer((Constant*)op, getter, Context, builder);
+          processInitializer((Constant*)op, getter, Context, builder, addedAlready);
         } // Else assume it's harmless...
       } else if(isa<UndefValue>(init)) {
         errs() << "Constant is undefined...\n";
@@ -396,7 +397,7 @@ namespace {
         }
         Value *newGetter = builder.CreateGEP(getter, derefSoFar);
         errs() << "Getter is " << *newGetter << "\n";
-        processInitializer(init, newGetter, Context, builder);
+        processInitializer(init, newGetter, Context, builder, false);
       }
     }
 
