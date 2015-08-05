@@ -1,5 +1,5 @@
 #!/bin/bash
-for x in $(seq 0 1000)
+for x in $(seq 0 100) $(seq 2000 2100)
 do
 	echo Testing partially aligned copy with size $x
 	./build.sh $x > /dev/null 2>&1 || exit 1
