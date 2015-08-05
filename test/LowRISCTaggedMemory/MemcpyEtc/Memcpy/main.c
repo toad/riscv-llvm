@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
 	fillArray(p);
 	printf("Calling function on original object...\n");
 #ifndef NO_TAGS
+	printf("Tag on p function pointer is %d\n", (int)load_tag(&(p->fn)));
 	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	p->fn();
@@ -50,14 +51,22 @@ int main(int argc, char **argv) {
 	checkArray(q);
 	printf("Calling function on memcpy'ed copy of object...\n");
 #ifndef NO_TAGS
+	printf("Tag on p function pointer is %d\n", (int)load_tag(&(p->fn)));
 	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
+	printf("Tag on q function pointer is %d\n", (int)load_tag(&(q->fn)));
+	assert(load_tag(&(q->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	q->fn();
 	Object *r = moveObject(p);
 	checkArray(r);
 	printf("Calling function on memmove'ed copy of object...\n");
 #ifndef NO_TAGS
+	printf("Tag on p function pointer is %d\n", (int)load_tag(&(p->fn)));
 	assert(load_tag(&(p->fn)) == __RISCV_TAG_CLEAN_FPTR);
+	printf("Tag on q function pointer is %d\n", (int)load_tag(&(q->fn)));
+	assert(load_tag(&(q->fn)) == __RISCV_TAG_CLEAN_FPTR);
+	printf("Tag on r function pointer is %d\n", (int)load_tag(&(r->fn)));
+	assert(load_tag(&(r->fn)) == __RISCV_TAG_CLEAN_FPTR);
 #endif
 	r->fn();
 	printf("Success!\n");
