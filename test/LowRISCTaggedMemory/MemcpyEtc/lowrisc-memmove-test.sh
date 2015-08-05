@@ -17,7 +17,7 @@ case "$BUILDWITH" in
 	;;
 	"gcc-linux")
 		echo Building with GCC for booted Linux
-		riscv-linux-gcc -O0 -I $RISCV/riscv-linux/include/ -static memmove1.c -o memmove1.riscv.linux -fno-builtin-memmove -fno-builtin-memcpy
+		riscv64-unknown-linux-gnu-gcc -O0 -I $RISCV/riscv-linux/include/ -static memmove1.c -o memmove1.riscv.linux -fno-builtin-memmove -fno-builtin-memcpy
 		echo Now run memmove1.riscv.linux in a booted kernel
 		cp memmove1.riscv.linux $OWD
 		cd $OWD
