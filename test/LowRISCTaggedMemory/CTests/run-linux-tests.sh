@@ -25,5 +25,12 @@ do
 		exit 3
 	fi
 	echo Test $x failed with gcc as expected
+	echo Test $x should abort with clang...
+	if $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/test-${x}.clang-linux.riscv-linux | grep "Called evil function, failure"
+	then
+		echo Clang protection failed: $x
+		exit 3
+	fi
+	echo Test $x aborted as expected with clang
 done
 echo All C tests successful
