@@ -17,25 +17,26 @@ do
 	# Don't build failing tests for gcc-no-tags
 	for x in fail-*.c
 	do
-		if test "$compiler" == "gcc-no-tags"; then
+		if ! test "$compiler" == "gcc-no-tags"; then
 			if ! spike pk test-${x}.${compiler}.riscv | grep "Called evil function"
 			then
-				echo "Test with protection turned off did not run evil code?!: $x with compiler $compiler"
-				echo "This means there is a bug in the test"
-				exit 2
+				if ! test "$compiler" == "clang"; then
+					echo "Test with protection turned off did not run evil code?!: $x with compiler $compiler"
+					echo "This means there is a bug in the test"
+					exit 2
+				else
+					echo "Clang protection prevented running evil code on $x"
+				fi
 			else
-				echo "Test with $compiler ran evil code as expected"
-				echo "With clang it should fail"
-			fi
-		else
-			if spike pk test-${x}.${compiler}.riscv | grep Success
-			then
-				echo "Test succeeded but should fail: $x with compiler $compiler"
-				echo "This means protection isn't working"
-				exit 2
+				if test "$compiler" == "clang"; then
+					echo "Clang protection failed, ran evil code on $x"
+					exit 3
+				else
+					echo "Test with protection turned off ran evil code $x with compiler $compiler as expected"
+				fi
 			fi
 		fi
-		echo "Test $x succeeded with $compiler (failed as expected)"
+		echo "Test $x succeeded with $compiler - failed as expected"
 	done
 	echo "All tests succeeded for $compiler"
 done
