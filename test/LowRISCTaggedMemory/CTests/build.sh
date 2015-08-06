@@ -1,5 +1,9 @@
 #!/bin/bash
 VARIABLES=""
+INCLUDES_NEWLIB="-I. -I $RISCV/riscv64-unknown-elf/include/"
+#INCLUDES_GLIBC="-I $RISCV/riscv-linux/include/ -I $RISCV/riscv64-unknown-linux-gnu/include/ -I ."
+#INCLUDES_GLIBC="-I $RISCV/riscv-linux/include/"
+INCLUDES_GLIBC="-I $RISCV/sysroot/usr/include/"
 case $1 in
 	clang)
 		# Build with Clang, with full tag support.
@@ -31,6 +35,11 @@ case $1 in
 		build=gcc-linux
 		VARIABLES="$VARIABLES -DFAKE_TAGS -D__TAGGED_MEMORY__"
 		;;
+	clang-linux)
+		# Build with Clang for a booted Linux system with full tag support
+		build=clang-linux
+		VARIABLES="$VARIABLES"
+		;;
 	*)
 		echo "./build.sh BUILDTYPE"
 		echo "Where BUILDTYPE is:"
@@ -39,6 +48,7 @@ case $1 in
 		echo "  gcc-force-tags: Test GCC with setting tags manually"
 		echo "  gcc-fail-tags: Test GCC with tags (should fail)"
 		echo "  gcc-linux: Build test for booted Linux using GCC with fake tags (should succeed)"
+		echo "  clang-linux: Build test for booted Linux using Clang with tags"
 		exit 1
 esac
 rm -f *.s *.ll *.bc
@@ -52,9 +62,14 @@ for main in main*.c fail*.c; do
 	"gcc-linux")
 		# Do nothing.
 		;;
-	"clang")
+	"clang"|"clang-linux")
 		echo Building $main with clang
-		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I. -I $RISCV/riscv64-unknown-elf/include/ -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
+		if test "$main" = "clang"; then
+			INCLUDES="$INCLUDES_NEWLIB"
+		else
+			INCLUDES="$INCLUDES_GLIBC"
+		fi
+		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
 		if ! opt -load $TOP/riscv-llvm/build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${main}.ll > ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
 		if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
 		;;
@@ -66,6 +81,9 @@ for main in main*.c fail*.c; do
 	if test "$build" == "gcc-linux"
 	then
 		riscv64-unknown-linux-gnu-gcc -static -o test-${main}.$1.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES $main || exit 3
+	elif test "$build" == "clang-linux"
+	then
+		riscv64-unknown-linux-gnu-gcc -static -o test-${main}.$1.riscv-linux -I $RISCV/riscv-linux/include/ $VARIABLES *.s || exit 3
 	else
 		riscv64-unknown-elf-gcc -o test-${main}.$1.riscv *.s || exit 3
 	fi
