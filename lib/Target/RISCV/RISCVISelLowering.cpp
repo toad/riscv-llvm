@@ -275,8 +275,8 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
   }
 
   if(Subtarget.hasTM()) {
-    setLibcallName(RTLIB::MEMCPY_WITH_TAGS, "__riscv_memcpy_tagged");
-    setLibcallName(RTLIB::MEMMOVE_WITH_TAGS, "__riscv_memmove_tagged");
+    setLibcallName(RTLIB::MEMCPY_LONGS_WITH_TAGS, "__riscv_memcpy_tagged_longs");
+    setLibcallName(RTLIB::MEMMOVE_LONGS_WITH_TAGS, "__riscv_memmove_tagged_longs");
     setLibcallName(RTLIB::MEMCPY_NO_TAGS, "__riscv_memcpy_no_tags");
     setLibcallName(RTLIB::MEMMOVE_NO_TAGS, "__riscv_memmove_no_tags");
   }

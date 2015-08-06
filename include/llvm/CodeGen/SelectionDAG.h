@@ -591,6 +591,11 @@ public:
   /// clobbered.
   SDValue getStackArgumentTokenFactor(SDValue Chain);
 
+private:
+  /// Used in memcpy sometimes
+  SDValue constantSizeBytesToLongs(ConstantSDNode *ConstantSize);
+
+public:
   SDValue getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst, SDValue Src,
                     SDValue Size, unsigned Align, bool isVol, bool AlwaysInline,
                     MachinePointerInfo DstPtrInfo,

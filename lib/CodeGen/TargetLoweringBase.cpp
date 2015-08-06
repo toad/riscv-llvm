@@ -308,8 +308,8 @@ static void InitLibcallNames(const char **Names, const TargetMachine &TM) {
   Names[RTLIB::MEMCPY] = "memcpy";
   Names[RTLIB::MEMMOVE] = "memmove";
   Names[RTLIB::MEMSET] = "memset";
-  Names[RTLIB::MEMCPY_WITH_TAGS] = "memcpy";
-  Names[RTLIB::MEMMOVE_WITH_TAGS] = "memmove";
+  Names[RTLIB::MEMCPY_LONGS_WITH_TAGS] = 0; // Not available
+  Names[RTLIB::MEMMOVE_LONGS_WITH_TAGS] = 0; // Not available
   Names[RTLIB::MEMCPY_NO_TAGS] = "memcpy";
   Names[RTLIB::MEMMOVE_NO_TAGS] = "memmove";
   Names[RTLIB::UNWIND_RESUME] = "_Unwind_Resume";

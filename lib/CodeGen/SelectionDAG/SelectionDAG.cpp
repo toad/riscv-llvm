@@ -3602,10 +3602,17 @@ static RTLIB::Libcall getMemcopyOp(bool isMove, MOVE_TAGS t) {
     case NO_TAGS:
       return isMove ? RTLIB::MEMMOVE_NO_TAGS : RTLIB::MEMCPY_NO_TAGS;
     case WITH_TAGS:
-      return isMove ? RTLIB::MEMMOVE_WITH_TAGS : RTLIB::MEMCPY_WITH_TAGS;
+      return isMove ? RTLIB::MEMMOVE_LONGS_WITH_TAGS : RTLIB::MEMCPY_LONGS_WITH_TAGS;
     default:
       assert(false && "Invalid MOVE_TAGS value");
   }
+}
+
+SDValue SelectionDAG::constantSizeBytesToLongs(ConstantSDNode *ConstantSize) {
+  errs() << "Dividing size for memcpy/memmove by 8";
+  // Need to divide by 8
+  uint64_t size = ConstantSize->getZExtValue();
+  return getConstant(size/8, EVT::getIntegerVT(*getContext(), 64));
 }
 
 static MOVE_TAGS shouldMoveTags(const TargetMachine &TM, 
@@ -3996,7 +4003,9 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
   MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize, Align);
+  SDValue FinalSize = Size;
   if (ConstantSize) {
+
     // Memcpy with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
       return Chain;
@@ -4006,7 +4015,9 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
                                 isVol, false, moveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
-  }
+
+    if(moveTags == WITH_TAGS) FinalSize = constantSizeBytesToLongs(ConstantSize);
+  } else assert(moveTags != WITH_TAGS && "Please add a shift to divide length by 8");
 
   // Then check to see if we should lower the memcpy with target-specific
   // code. If the target chooses to do this, this is the next best.
@@ -4038,7 +4049,7 @@ SDValue SelectionDAG::getMemcpy(SDValue Chain, DebugLoc dl, SDValue Dst,
   Entry.Ty = TLI.getDataLayout()->getIntPtrType(*getContext());
   Entry.Node = Dst; Args.push_back(Entry);
   Entry.Node = Src; Args.push_back(Entry);
-  Entry.Node = Size; Args.push_back(Entry);
+  Entry.Node = FinalSize; Args.push_back(Entry);
 
   llvm::RTLIB::Libcall toCall = getMemcopyOp(false, moveTags);
   // FIXME: pass in DebugLoc
@@ -4067,6 +4078,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
   // For cases within the target-specified limits, this is the best choice.
   ConstantSDNode *ConstantSize = dyn_cast<ConstantSDNode>(Size);
   MOVE_TAGS moveTags = shouldMoveTags(TM, ConstantSize, Align);
+  SDValue FinalSize = Size;
   if (ConstantSize) {
     // Memmove with size zero? Just return the original chain.
     if (ConstantSize->isNullValue())
@@ -4078,7 +4090,9 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
                                false, moveTags, DstPtrInfo, SrcPtrInfo);
     if (Result.getNode())
       return Result;
-  }
+
+    if(moveTags == WITH_TAGS) FinalSize = constantSizeBytesToLongs(ConstantSize);
+  } else assert(moveTags != WITH_TAGS && "Please add a shift to divide length by 8");
 
   // Then check to see if we should lower the memmove with target-specific
   // code. If the target chooses to do this, this is the next best.
@@ -4097,7 +4111,7 @@ SDValue SelectionDAG::getMemmove(SDValue Chain, DebugLoc dl, SDValue Dst,
   Entry.Ty = TLI.getDataLayout()->getIntPtrType(*getContext());
   Entry.Node = Dst; Args.push_back(Entry);
   Entry.Node = Src; Args.push_back(Entry);
-  Entry.Node = Size; Args.push_back(Entry);
+  Entry.Node = FinalSize; Args.push_back(Entry);
 
   llvm::RTLIB::Libcall toCall = getMemcopyOp(true, moveTags);
   // FIXME:  pass in DebugLoc
