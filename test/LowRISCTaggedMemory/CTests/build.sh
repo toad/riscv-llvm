@@ -36,7 +36,6 @@ case $1 in
 	clang-linux)
 		# Build with Clang for a booted Linux system with full tag support
 		build=clang-linux
-		VARIABLES="$VARIABLES"
 		;;
 	*)
 		echo "./build.sh BUILDTYPE"
