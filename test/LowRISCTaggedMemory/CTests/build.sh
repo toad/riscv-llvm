@@ -1,8 +1,6 @@
 #!/bin/bash
 VARIABLES=""
 INCLUDES_NEWLIB="-I. -I $RISCV/riscv64-unknown-elf/include/"
-#INCLUDES_GLIBC="-I $RISCV/riscv-linux/include/ -I $RISCV/riscv64-unknown-linux-gnu/include/ -I ."
-#INCLUDES_GLIBC="-I $RISCV/riscv-linux/include/"
 INCLUDES_GLIBC="-I $RISCV/sysroot/usr/include/"
 case $1 in
 	clang)
