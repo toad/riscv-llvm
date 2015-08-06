@@ -20,7 +20,7 @@ void verify(int seed, long *aa, int length) {
 	for(i=0;i<length;i++) {
 		long randomValue = rand();
 		unsigned char randomTag = rand() & ~7;
-		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
+//		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
 		assert(aa[i] == randomValue);
 		assert((unsigned char)load_tag(&aa[i]) == randomTag);
 	}
@@ -32,7 +32,7 @@ void verifyNoTags(int seed, long *aa, int length) {
 	for(i=0;i<length;i++) {
 		long randomValue = rand();
 		unsigned char randomTag = rand() & ~7;
-		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
+//		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
 		assert(aa[i] == randomValue);
 		assert((unsigned char)load_tag(&aa[i]) == 0);
 	}
@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
 		char randomTag = rand() & ~7;
 		aa[i] = randomValue;
 		store_tag(&aa[i], randomTag);
-		printf("[%d] = %ld, tag %d\n", i, randomValue, randomTag);
+//		printf("[%d] = %ld, tag %d\n", i, randomValue, randomTag);
 	}
 	// Should copy tags.
 	printf("Calling memcpy\n");
@@ -114,11 +114,11 @@ int main(int argc, char **argv) {
 	verify(seed, aa, LENGTH);
 	assert(bb[LENGTH-1] == aa[LENGTH-1]);
 	assert(load_tag(&bb[LENGTH-1]) == load_tag(&aa[LENGTH-1]));
-	for(i=0;i<LENGTH-1;i++) {
-		printf("bb[%d] = %ld, tag %d should be %ld, tag %d\n", i, bb[i],
-                  (unsigned char)load_tag(&bb[i]), aa[i+1], 
-                  (unsigned char)load_tag(&aa[i+1]));
-	}
+//	for(i=0;i<LENGTH-1;i++) {
+//		printf("bb[%d] = %ld, tag %d should be %ld, tag %d\n", i, bb[i],
+//                  (unsigned char)load_tag(&bb[i]), aa[i+1], 
+//                  (unsigned char)load_tag(&aa[i+1]));
+//	}
 	for(i=0;i<LENGTH-1;i++) {
 		assert(bb[i] = aa[i+1]);
 		assert(load_tag(&bb[i]) == load_tag(&aa[i+1]));
