@@ -19,7 +19,7 @@ done
 for x in fail*.c
 do
 	echo Test $x should fail with gcc...
-	if $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/test-${x}.gcc-linux.riscv-linux
+	if ! $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/test-${x}.gcc-linux.riscv-linux | grep "Called evil function, failure"
 	then
 		echo Test should have failed but succeeded: $x
 		exit 3
