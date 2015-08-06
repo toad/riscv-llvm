@@ -9,7 +9,7 @@ for x in Test SubclassTest; do
 	llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 done
 for main in main-*.cc; do
-	for build in gcc clang
+	for build in gcc clang gcc-linux
 	do
 		rm -f main*.s
 		if test "$build" = "gcc"; then
@@ -22,8 +22,12 @@ for main in main-*.cc; do
 		        llvm-dis ${main}.opt.bc > ${main}.opt.ll
 			if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
 		fi
-		echo Assembling and linking with gcc
-		riscv64-unknown-elf-g++ -o test-${main}.${build}.riscv *.s || exit 3
+		if test "$build" == "gcc-linux"; then
+			riscv64-unknown-linux-gnu-g++ -fno-stack-protector -O0 -static -o test-${main}.${build}.riscv $main Test.cc SubclassTest.cc || exit 4
+		else
+			echo Assembling and linking with gcc
+			riscv64-unknown-elf-g++ -o test-${main}.${build}.riscv *.s || exit 3
+		fi
 		echo Successfully built test-${main}.${build}.riscv
 	done
 done
