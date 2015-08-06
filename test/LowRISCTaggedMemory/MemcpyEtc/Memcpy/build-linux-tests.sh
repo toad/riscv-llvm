@@ -1,4 +1,5 @@
 #!/bin/bash
+compiler=${1:-gcc-linux}
 SCRIPT=run-memcpy-tests.sh
 # $1 = compiler type
 # $2 = array size
@@ -14,16 +15,13 @@ mkdir mnt/bin
 rm -f *.riscv-linux
 rm -f $SCRIPT
 echo "#!/bin/ash" > $SCRIPT
-for compiler in gcc-linux clang-linux
+for x in $(seq 0 100) $(seq 2000 2100)
 do
-	for x in $(seq 0 100) $(seq 2000 2100)
-	do
-		echo Building $x with $compiler
-		build $compiler $x
-		mv test-main.c.${compiler}.$x.riscv-linux mnt/bin
-		echo "echo Running test $x with $compiler" >> $SCRIPT
-		echo "test-main.c.${compiler}.$x.riscv-linux || exit" >> $SCRIPT
-	done
+	echo Building $x with $compiler
+	build $compiler $x
+	mv test-main.c.${compiler}.$x.riscv-linux mnt/bin
+	echo "echo Running test $x with $compiler" >> $SCRIPT
+	echo "test-main.c.${compiler}.$x.riscv-linux || exit" >> $SCRIPT
 done
-echo "echo Completed all tests" >> $SCRIPT
+echo "echo Completed all tests on $compiler" >> $SCRIPT
 chmod +x run-memcpy-tests.sh
