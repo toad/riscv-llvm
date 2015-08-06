@@ -1,10 +1,11 @@
 #!/bin/bash
+compiler=${1:-gcc-linux}
 # $1 = compiler type
 # $2 = array size
 SCRIPT=run-memmove-random-tests.sh
 build()
 {
-	if ! ./build-gcc-linux.sh $1 > /dev/null 2>&1
+	if ! ./build-${compiler}.sh $1 > /dev/null 2>&1
 	then echo Could not build with gcc-linux $1; exit 1; fi
 }
 
@@ -16,11 +17,11 @@ rm -f $SCRIPT
 echo "#!/bin/ash" > $SCRIPT
 for x in $(seq 3 100) $(seq 2000 2100)
 do
-	echo Building $x
+	echo Building $x with $compiler
 	build $x
-	mv main.riscv-linux mnt/bin/memmove-random-$x
-	echo "echo Running test $x" >> $SCRIPT
-	echo "memmove-random-$x || exit" >> $SCRIPT
+	mv main.${compiler}.riscv-linux mnt/bin/memmove-random-${compiler}-$x
+	echo "echo Running test $x for $compiler" >> $SCRIPT
+	echo "memmove-random-${compiler}-$x || exit" >> $SCRIPT
 done
 echo "echo Completed all tests" >> $SCRIPT
 chmod +x $SCRIPT
