@@ -1,5 +1,6 @@
 #!/bin/bash
-if ! ./build.sh gcc-linux; then echo Failed to build; exit 1; fi
+if ! ./build.sh gcc-linux; then echo Failed to build for GCC; exit 1; fi
+if ! ./build.sh clang-linux; then echo Failed to build for Linux; exit 1; fi
 for x in main*.c
 do
 	if ! $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/test-${x}.gcc-linux.riscv-linux
@@ -7,7 +8,13 @@ do
 		echo Test failed: $x
 		exit 2
 	fi
-	echo Test $x succeeded as expected
+	echo Test $x succeeded on GCC-linux as expected
+	if ! $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/test-${x}.clang-linux.riscv-linux
+	then
+		echo Test failed: $x
+		exit 2
+	fi
+	echo Test $x succeeded on Clang-linux as expected
 done
 for x in fail*.c
 do
