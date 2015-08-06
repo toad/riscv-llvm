@@ -41,5 +41,5 @@ int main(int argc, char **argv) {
 	printf("This should fail...\n");
 	mutableFN();
 	printf("Called evil function, failure!\n");
-	return 1;
+	return 0;
 }
