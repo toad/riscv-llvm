@@ -105,7 +105,7 @@ for main in main*.c; do
 		riscv64-unknown-linux-gnu-gcc -static -o test-${main}.$1.${ARRAY_SIZE}.riscv-linux -O0 -I $RISCV/riscv-linux/include/ $VARIABLES main.c object.c || exit 3
 	elif test "$build" == "clang-linux"
 	then
-		riscv64-unknown-linux-gnu-gcc -static -o test-${main}.$1.riscv-linux $VARIABLES *.s || exit 3
+		riscv64-unknown-linux-gnu-gcc -static -o test-${main}.$1.${ARRAY_SIZE}.riscv-linux $VARIABLES *.s || exit 3
 	else
 		riscv64-unknown-elf-gcc -o test-${main}.$1.${ARRAY_SIZE}.riscv *.s || exit 3
 	fi
