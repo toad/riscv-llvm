@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir -p mnt/bin
 ./lowrisc-memmove-test.sh gcc-linux || exit 1
 $TOP/lowrisc-chip/riscv-tools/run_test_linux_spike.sh $PWD/memmove1.riscv.linux || exit 2
 cp memmove1.riscv.linux mnt/bin/
