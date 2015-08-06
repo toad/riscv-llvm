@@ -24,6 +24,18 @@ case "$BUILDWITH" in
 		rm -Rf $TMP
 		exit 0
 	;;
+	"clang-linux")
+		echo Building with Clang for booted Linux
+		INCLUDES_GLIBC="-I $RISCV/sysroot/usr/include/"
+		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES_GLIBC -S memmove1.c -emit-llvm -o memmove1.ll; then echo Failed to build; exit 3; fi
+		if ! opt -load $TOP/riscv-llvm/build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < memmove1.ll > memmove1.opt.bc; then echo Failed to optimise; exit 3; fi
+		if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC memmove1.opt.bc -o memmove1.s; then echo Failed to convert optimised code to assembler; exit 3; fi
+		if ! riscv64-unknown-linux-gnu-gcc -static -o memmove1.riscv.linux memmove1.s; then echo Failed to assemble and link with gcc; exit 3; fi
+		cp memmove1.riscv.linux $OWD
+		rm -Rf $TMP
+		echo Now run memmove1.riscv.linux in a booted kernel
+		exit 0
+		;;
 	*)
 		exit 2
 esac
