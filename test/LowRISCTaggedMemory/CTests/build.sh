@@ -61,7 +61,7 @@ for main in main*.c fail*.c; do
 		;;
 	"clang"|"clang-linux")
 		echo Building $main with clang
-		if test "$main" = "clang"; then
+		if test "$build" = "clang"; then
 			INCLUDES="$INCLUDES_NEWLIB"
 		else
 			INCLUDES="$INCLUDES_GLIBC"
