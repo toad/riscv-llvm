@@ -412,15 +412,32 @@ namespace {
       }
       return false;
     }
+    
+    Function* addCheckTaggedFailed(Module &M, LLVMContext &Context) {
+      AttributeSet fnAttributes;
+      Function *f = M.getFunction("__llvm_riscv_check_tagged_failure");
+      if(f) {
+        return f;
+      }
+      FunctionType *type = FunctionType::get(Type::getVoidTy(Context),
+                                             false);
+      f = Function::Create(type, GlobalValue::LinkOnceAnyLinkage, // Allow overriding!
+                           "__llvm_riscv_check_tagged_failure", &M);
+      BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
+      IRBuilder<> builder(entry);
+      builder.CreateTrap();
+      builder.CreateRetVoid(); // FIXME Needs a terminal?
+      return f;
+    }
 
     bool addCheckTagged(Module &M, LLVMContext &Context) {
-      // FIXME reconsider linkage - want people to be able to override it?
       AttributeSet fnAttributes;
       Function *f = M.getFunction("__llvm_riscv_check_tagged");
       if(f) {
         FunctionCheckTagged = f;
         return false;
       }
+      Function *fail = addCheckTaggedFailed(M, Context);
       Type *params[] = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
                        IntegerType::get(Context, 64) };
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
@@ -440,7 +457,8 @@ namespace {
       builder.SetInsertPoint(onTagged);
       builder.CreateRetVoid();
       builder.SetInsertPoint(onNotTagged);
-      builder.CreateTrap();
+
+      builder.CreateCall(fail);
       builder.CreateRetVoid(); // FIXME Needs a terminal?
       // FIXME add argument attribute NonNull, Dereferenceable to pointer.
       f -> addFnAttr(Attribute::AlwaysInline);
