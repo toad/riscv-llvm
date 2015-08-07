@@ -10,6 +10,7 @@ for x in Test SubclassTest; do
 	llvm-dis ${x}.opt.bc > ${x}.opt.ll
 	llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 done
+riscv64-unknown-elf-gcc -S fail-error.c
 for main in main-*.cc; do
 	for build in gcc clang gcc-linux clang-linux
 	do
