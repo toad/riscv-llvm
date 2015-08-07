@@ -29,6 +29,10 @@ for main in main-*.cc; do
 			echo Building $main with gcc
 			riscv64-unknown-elf-gcc -fpermissive -O0 $INCLUDES -S $main -o ${main}.s || exit 1
 			;;
+		"gcc-linux")
+			echo Building $main with gcc for linux
+			riscv64-unknown-linux-gnu-gcc -fpermissive -O0 $INCLUDES -S $main -o ${main}.s || exit 1
+			;;
 		"clang"|"clang-linux")
 			echo Building $main with clang
 			if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $main -emit-llvm -o ${main}.ll -fno-exceptions -DCHECK_TAGS; then echo Failed to build $main with $build; break; fi
@@ -38,11 +42,8 @@ for main in main-*.cc; do
 			;;
 		esac
 		case "$build" in
-		"gcc-linux")
-			riscv64-unknown-linux-gnu-g++ -fno-stack-protector -O0 -static -o test-${main}.${build}.riscv $main Test.cc SubclassTest.cc || exit 4
-			;;
-		"clang-linux")
-			riscv64-unknown-linux-gnu-g++ -fno-stack-protector -O0 -static -o test-${main}.${build}.riscv *.s || exit 5
+		"clang-linux"|"gcc-linux")
+			riscv64-unknown-linux-gnu-g++ -fno-stack-protector -fno-exceptions -O0 -static -o test-${main}.${build}.riscv *.s || exit 5
 			;;
 		*)
 			echo Assembling and linking with gcc
