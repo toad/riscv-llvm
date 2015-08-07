@@ -9,9 +9,11 @@ rm -f *.s *.ll
 case "$build" in
 	"gcc"|"clang")
 		INCLUDES="$INCLUDES_NEWLIB"
+                riscv64-unknown-elf-gcc -S fail-error.newlib.c
 		;;
 	"gcc-linux"|"clang-linux")
 		INCLUDES="$INCLUDES_GLIBC"
+                riscv64-unknown-linux-gnu-gcc -S fail-error.glibc.c
 		;;
 esac
 for x in Test SubclassTest; do
@@ -21,7 +23,6 @@ for x in Test SubclassTest; do
 	llvm-dis ${x}.opt.bc > ${x}.opt.ll
 	llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 done
-riscv64-unknown-elf-gcc -S fail-error.c
 for main in main-*.cc; do
 		rm -f main*.s
 		case "$build" in
