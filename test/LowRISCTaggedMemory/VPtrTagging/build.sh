@@ -1,32 +1,36 @@
 #!/bin/bash
-# FIXME Build it all with clang when it works! :(
-rm -f *.s *.ll *.riscv
+rm -f *.riscv
 INCLUDES_NEWLIB="-I. -I $RISCV/riscv64-unknown-elf/include/ -I $RISCV/riscv64-unknown-elf/include/c++/5.2.0/ -I $RISCV/riscv64-unknown-elf/include/c++/5.2.0/riscv64-unknown-elf/"
 INCLUDES_GLIBC="-I $RISCV/sysroot/usr/include/ -I $RISCV/riscv64-unknown-linux-gnu/include/c++/5.2.0/ -I $RISCV/riscv64-unknown-linux-gnu/include/c++/5.2.0/riscv64-unknown-linux-gnu"
+for build in gcc clang gcc-linux clang-linux
+do
+echo Building for $build
+rm -f *.s *.ll
+case "$build" in
+	"gcc"|"clang")
+		INCLUDES="$INCLUDES_NEWLIB"
+		;;
+	"gcc-linux"|"clang-linux")
+		INCLUDES="$INCLUDES_GLIBC"
+		;;
+esac
 for x in Test SubclassTest; do
 	echo Building ${x}.cc with clang
-	clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC -I $RISCV/riscv64-unknown-elf/include/c++/4.9.2/ -I $RISCV/riscv64-unknown-elf/include/ -I $RISCV/riscv64-unknown-elf/include/c++/4.9.2/riscv64-unknown-elf/ -S ${x}.cc -emit-llvm -o ${x}.ll -fno-exceptions -DCHECK_TAGS || exit 2
+	clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S ${x}.cc -emit-llvm -o ${x}.ll -fno-exceptions -DCHECK_TAGS || exit 2
 	opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${x}.ll > ${x}.opt.bc || exit 3
 	llvm-dis ${x}.opt.bc > ${x}.opt.ll
 	llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 done
 riscv64-unknown-elf-gcc -S fail-error.c
 for main in main-*.cc; do
-	for build in gcc clang gcc-linux clang-linux
-	do
 		rm -f main*.s
 		case "$build" in
 		"gcc")
 			echo Building $main with gcc
-			riscv64-unknown-elf-gcc -fpermissive -O0 -I $RISCV/riscv64-unknown-elf/include/c++/4.9.2/ -I $RISCV/riscv64-unknown-elf/include/ -I $RISCV/riscv64-unknown-elf/include/c++/4.9.2/riscv64-unknown-elf/ -S $main -o ${main}.s || exit 1
+			riscv64-unknown-elf-gcc -fpermissive -O0 $INCLUDES -S $main -o ${main}.s || exit 1
 			;;
 		"clang"|"clang-linux")
 			echo Building $main with clang
-			if test "$build" = "clang"; then
-				INCLUDES="$INCLUDES_NEWLIB"
-			else
-				INCLUDES="$INCLUDES_GLIBC"
-			fi
 			if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $main -emit-llvm -o ${main}.ll -fno-exceptions -DCHECK_TAGS; then echo Failed to build $main with $build; break; fi
 			if ! opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${main}.ll > ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
 		        llvm-dis ${main}.opt.bc > ${main}.opt.ll
