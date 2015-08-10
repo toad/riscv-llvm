@@ -354,6 +354,34 @@ defm PairFP128 : RISCVRegClass<"PairFP128", f128, 128, (add
 class PCR<bits<16> num, string n> : RISCVReg<n> {
   let HWEncoding = num;
 }
+
+// User-mode CSRs
+
+// Floating-Point Accrued Exceptions.
+def fflags   : PCR<0, "fflags">
+// Floating-Point Dynamic Rounding Mode.
+def frm      : PCR<1, "frm">
+// Floating-Point Control and Status Register (frm+fflags).
+def fcsr     : PCR<2, "fcsr">
+// Cycle counter for RDCYCLE
+def cycle    : PCR<0xC00, "cycle">
+// Time for RDTIME
+def time     : PCR<0xC01, "time">
+// Instructions retired for RDINSTRET
+def instret  : PCR<0xC02, "instret">
+
+// RV32-only
+
+// Upper 32 bits of cycle, RV32I only.
+def cycleh   : PCR<0xC80, "cycle">
+// Upper 32 bits of time, RV32I only.
+def timeh    : PCR<0xC81, "timeh">
+// Upper 32 bits of instret, RV32I only.
+def instreth : PCR<0xC81, "instreth">
+
+// FIXME add supervisor, hypervisor and machine mode CSRs
+
+/* Old ABI
 //Scratch register for exception handlers
 def sup0     : PCR<0,"cr0">;
 //Scratch register for exception handlers
@@ -405,6 +433,7 @@ def pr13     : PCR<29,"cr29">;
 def tohost   : PCR<30,"cr30">;
 //Test input register
 def fromhost : PCR<31,"cr31">;
+*/
 
 //PCRs 
 defm PCRReg : RISCVRegClass<"PCRReg", i32, 32, (add
@@ -418,6 +447,26 @@ defm PCRReg : RISCVRegClass<"PCRReg", i32, 32, (add
 class PCR64<bits<16> num, string n> : RISCVReg<n> {
   let HWEncoding = num;
 }
+
+// User-mode CSRs
+
+// Floating-Point Accrued Exceptions.
+def fflags_64   : PCR64<0, "fflags">
+// Floating-Point Dynamic Rounding Mode.
+def frm_64      : PCR64<1, "frm">
+// Floating-Point Control and Status Register (frm+fflags).
+def fcsr_64     : PCR64<2, "fcsr">
+// Cycle counter for RDCYCLE
+def cycle_64    : PCR64<0xC00, "cycle">
+// Time for RDTIME
+def time_64     : PCR64<0xC01, "time">
+// Instructions retired for RDINSTRET
+def instret_64  : PCR64<0xC02, "instret">
+
+// FIXME add supervisor, hypervisor and machine mode CSRs
+
+/* Old ABI
+
 //Scratch register for exception handlers
 def sup0_64     : PCR64<0,"cr0">;
 //Scratch register for exception handlers
@@ -469,6 +518,8 @@ def pr13_64     : PCR64<29,"cr29">;
 def tohost_64   : PCR64<30,"cr30">;
 //Test input register
 def fromhost_64 : PCR64<31,"cr31">;
+
+*/
 
 //PCRs (64-bit)
 defm PCR64Reg : RISCVRegClass<"PCR64Reg", i64, 64, (add
