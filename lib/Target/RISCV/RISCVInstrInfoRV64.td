@@ -401,3 +401,9 @@ def CSRW_64: InstRISCV<4, (outs PCR64Reg:$csr), (ins GR64:$src),
   let Inst{6-0} = 0b1110011;
 }
 
+def : Pat<(int_riscv_set_tm_trap_ld GR64Bit:$rs),
+          (CSRW LD_TAG, GR64Bit:$rs)>, Requires<[IsRV64,HasTM]>;
+
+def : Pat<(int_riscv_set_tm_trap_sd GR64Bit:$rs),
+          (CSRW SD_TAG, GR64Bit:$rs)>, Requires<[IsRV64,HasTM]>;
+
