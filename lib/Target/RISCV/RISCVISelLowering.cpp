@@ -70,13 +70,16 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
 
 
   // Set up special registers.
+  // FIXME user mode exception handling does not work upstream currently,
+  // there is no exception pointer register etc.
+  // There are separate sets of registers for supervisor and machine mode...
   if(Subtarget.isRV64()) {
-    setExceptionPointerRegister(RISCV::epc_64);
-    setExceptionSelectorRegister(RISCV::evec_64);
+//    setExceptionPointerRegister(RISCV::epc_64);
+//    setExceptionSelectorRegister(RISCV::evec_64);
     setStackPointerRegisterToSaveRestore(RISCV::sp_64);
   }else {
-    setExceptionPointerRegister(RISCV::epc);
-    setExceptionSelectorRegister(RISCV::evec);
+//    setExceptionPointerRegister(RISCV::epc);
+//    setExceptionSelectorRegister(RISCV::evec);
     setStackPointerRegisterToSaveRestore(RISCV::sp);
   }
 

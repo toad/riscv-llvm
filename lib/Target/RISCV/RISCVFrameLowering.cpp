@@ -72,14 +72,16 @@ bool RISCVFrameLowering::hasFP(const MachineFunction &MF) const {
       MFI->hasVarSizedObjects() || MFI->isFrameAddressTaken();
 }
 
-
-unsigned RISCVFrameLowering::ehDataReg(unsigned I) const {
-  static const unsigned EhDataReg[] = {
-    RISCV::sup0, RISCV::sup1
-  };
-
-  return EhDataReg[I];
-}
+// FIXME user mode exception handling does not work upstream currently,
+// there is no exception pointer register etc.
+// There are separate sets of registers for supervisor and machine mode...
+//unsigned RISCVFrameLowering::ehDataReg(unsigned I) const {
+//  static const unsigned EhDataReg[] = {
+//    RISCV::sup0, RISCV::sup1
+//  };
+//
+//  return EhDataReg[I];
+//}
 
 void RISCVFrameLowering::emitPrologue(MachineFunction &MF) const {
   MachineBasicBlock &MBB   = MF.front();
@@ -147,28 +149,28 @@ void RISCVFrameLowering::emitPrologue(MachineFunction &MF) const {
     }
   }
 
-  if (RISCVFI->getCallsEhReturn()) {
-    const TargetRegisterClass *RC = &RISCV::GR32BitRegClass;
+//  if (RISCVFI->getCallsEhReturn()) {
+//    const TargetRegisterClass *RC = &RISCV::GR32BitRegClass;
 
     // Insert instructions that spill eh data registers.
-    for (int I = 0; I < 4; ++I) {
-      if (!MBB.isLiveIn(ehDataReg(I)))
-        MBB.addLiveIn(ehDataReg(I));
-      TII.storeRegToStackSlot(MBB, MBBI, ehDataReg(I), false,
-                              RISCVFI->getEhDataRegFI(I), RC, RegInfo);
-    }
+//    for (int I = 0; I < 4; ++I) {
+//      if (!MBB.isLiveIn(ehDataReg(I)))
+//        MBB.addLiveIn(ehDataReg(I));
+//      TII.storeRegToStackSlot(MBB, MBBI, ehDataReg(I), false,
+//                              RISCVFI->getEhDataRegFI(I), RC, RegInfo);
+//    }
 
-    // Emit .cfi_offset directives for eh data registers.
-    MCSymbol *CSLabel2 = MMI.getContext().CreateTempSymbol();
-    BuildMI(MBB, MBBI, dl,
-            TII.get(TargetOpcode::PROLOG_LABEL)).addSym(CSLabel2);
-    for (int I = 0; I < 4; ++I) {
-      int64_t Offset = MFI->getObjectOffset(RISCVFI->getEhDataRegFI(I));
-      DstML = MachineLocation(MachineLocation::VirtualFP, Offset);
-      SrcML = MachineLocation(ehDataReg(I));
-      Moves.push_back(MachineMove(CSLabel2, DstML, SrcML));
-    }
-  }
+//    // Emit .cfi_offset directives for eh data registers.
+//    MCSymbol *CSLabel2 = MMI.getContext().CreateTempSymbol();
+//    BuildMI(MBB, MBBI, dl,
+//            TII.get(TargetOpcode::PROLOG_LABEL)).addSym(CSLabel2);
+//    for (int I = 0; I < 4; ++I) {
+//      int64_t Offset = MFI->getObjectOffset(RISCVFI->getEhDataRegFI(I));
+//      DstML = MachineLocation(MachineLocation::VirtualFP, Offset);
+//      SrcML = MachineLocation(ehDataReg(I));
+//      Moves.push_back(MachineMove(CSLabel2, DstML, SrcML));
+//    }
+//  }
 
   // if framepointer enabled, set it to point to the stack pointer.
   if (hasFP(MF)) {
@@ -224,11 +226,11 @@ void RISCVFrameLowering::emitEpilogue(MachineFunction &MF,
       if(tagSpilledRegisters) --I;
     }
 
-    // Insert instructions that restore eh data registers.
-    for (int J = 0; J < 4; ++J) {
-      TII.loadRegFromStackSlot(MBB, I, ehDataReg(J), RISCVFI->getEhDataRegFI(J),
-                               RC, RegInfo);
-    }
+//    // Insert instructions that restore eh data registers.
+//    for (int J = 0; J < 4; ++J) {
+//      TII.loadRegFromStackSlot(MBB, I, ehDataReg(J), RISCVFI->getEhDataRegFI(J),
+//                               RC, RegInfo);
+//    }
   }
 
   // Get the number of bytes from FrameInfo
@@ -359,9 +361,9 @@ processFunctionBeforeCalleeSavedScan(MachineFunction &MF,
   if (hasFP(MF))
     MRI.setPhysRegUsed(FP);
 
-  // Create spill slots for eh data registers if function calls eh_return.
-  if (RISCVFI->getCallsEhReturn())
-    RISCVFI->createEhDataRegsFI();
+//  // Create spill slots for eh data registers if function calls eh_return.
+//  if (RISCVFI->getCallsEhReturn())
+//    RISCVFI->createEhDataRegsFI();
 
   // Set scavenging frame index if necessary.
   uint64_t MaxSPOffset = MF.getInfo<RISCVMachineFunctionInfo>()->getIncomingArgSize() +
