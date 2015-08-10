@@ -463,6 +463,13 @@ def time_64     : PCR64<0xC01, "time">
 // Instructions retired for RDINSTRET
 def instret_64  : PCR64<0xC02, "instret">
 
+// Tagged memory CSRs (FIXME not final numbers!)
+
+// Bits indicate which tags to trap on on LDCT
+def ld_tag_64   : PCR64<4, "ld_tag">
+// Bits indicate which tags to trap on on SDCT
+def sd_tag_64   : PCR64<5, "sd_tag">
+
 // FIXME add supervisor, hypervisor and machine mode CSRs
 
 /* Old ABI
