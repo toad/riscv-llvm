@@ -180,7 +180,35 @@ namespace {
     /* Adds __llvm_riscv_check_tagged */
     virtual bool runOnModule(Module &M) {
       LLVMContext &Context = M.getContext();
-      return addCheckTagged(M, Context) | tagGlobals(M, Context);
+      addSetupCSRs(M, Context);
+      addCheckTagged(M, Context);
+      tagGlobals(M, Context);
+      return true;
+    }
+    
+    void addSetupCSRs(Module &M, LLVMContext &Context) {
+      // FIXME This is yet another gross hack. :)
+      // This will add one global init per module.
+      // It is not clear who will eventually be responsible for setting the LDCT/SDCT CSRs:
+      // Will they be settable from userspace?
+      // The kernel could enforce a single global policy, or it could save and restore values for each process.
+      // FIXME In any case they should be set once per process, not once per module!
+      // Fixing this requires support in the linker or the frontend.
+      AttributeSet fnAttributes;
+      Function *f = M.getFunction("__llvm_riscv_init_tagged_memory_csrs");
+      if(f) {
+        return;
+      }
+      FunctionType *type = FunctionType::get(Type::getVoidTy(Context),
+                                             false);
+      f = Function::Create(type, GlobalValue::LinkOnceAnyLinkage, // Allow overriding!
+                           "__llvm_riscv_init_tagged_memory_csrs", &M);
+      BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
+      IRBuilder<> builder(entry);
+      Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_init_tm);
+      builder.CreateCall(TheFn);
+      builder.CreateRetVoid();
+      appendToGlobalCtors(M, f, 0);
     }
 
     bool tagGlobals(Module &M, LLVMContext &Context) {
