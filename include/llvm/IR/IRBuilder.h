@@ -369,17 +369,15 @@ public:
   enum LowRISCMemoryTag {
     TAG_NORMAL = 0,
     TAG_READ_ONLY = 1,
-    TAG_WRITE_ONLY = 2,
+    TAG_WRITE_ONLY = 2, // Fault on read, but zeroed on a normal write.
     TAG_INVALID = 3,
     // Lazy tags (bit 2 = set to 0 on write)
-    TAG_CLEAN = 4, // -> 0 (dirty)
-    TAG_WRITE_THEN_READ = 6, // not readable until written (then 0)
-    TAG_CLEAN_FPTR = 12, // Function pointer
-    TAG_CLEAN_PFPTR = 20, // Pointer to function pointer (e.g. vtable)
-    TAG_CLEAN_SENSITIVE = 28, // Pointer to structure including function pointer etc
-    TAG_CLEAN_SENSITIVE_VOID = 36, // Pointer to structure including void*
-    TAG_CLEAN_VOIDPTR = 44, // void* (or char*)
-    TAG_CLEAN_POINTER = 52 // Any pointer
+    TAG_CLEAN_FPTR = 4, // Function pointer
+    TAG_CLEAN_PFPTR = 5, // Pointer to function pointer (e.g. vtable)
+    TAG_CLEAN_SENSITIVE = 6, // Pointer to structure including function pointer etc
+    TAG_CLEAN_SENSITIVE_VOID = 7, // Pointer to structure including void*
+    TAG_CLEAN_VOIDPTR = 8, // void* (or char*)
+    TAG_CLEAN_POINTER = 9 // Any pointer
   };
 
 private:
