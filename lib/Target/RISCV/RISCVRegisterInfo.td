@@ -358,26 +358,26 @@ class PCR<bits<16> num, string n> : RISCVReg<n> {
 // User-mode CSRs
 
 // Floating-Point Accrued Exceptions.
-def fflags   : PCR<0, "fflags">
+def fflags   : PCR<0, "fflags">;
 // Floating-Point Dynamic Rounding Mode.
-def frm      : PCR<1, "frm">
+def frm      : PCR<1, "frm">;
 // Floating-Point Control and Status Register (frm+fflags).
-def fcsr     : PCR<2, "fcsr">
+def fcsr     : PCR<2, "fcsr">;
 // Cycle counter for RDCYCLE
-def cycle    : PCR<0xC00, "cycle">
+def cycle    : PCR<0xC00, "cycle">;
 // Time for RDTIME
-def time     : PCR<0xC01, "time">
+def time     : PCR<0xC01, "time">;
 // Instructions retired for RDINSTRET
-def instret  : PCR<0xC02, "instret">
+def instret  : PCR<0xC02, "instret">;
 
 // RV32-only
 
 // Upper 32 bits of cycle, RV32I only.
-def cycleh   : PCR<0xC80, "cycle">
+def cycleh   : PCR<0xC80, "cycle">;
 // Upper 32 bits of time, RV32I only.
-def timeh    : PCR<0xC81, "timeh">
+def timeh    : PCR<0xC81, "timeh">;
 // Upper 32 bits of instret, RV32I only.
-def instreth : PCR<0xC81, "instreth">
+def instreth : PCR<0xC81, "instreth">;
 
 // FIXME add supervisor, hypervisor and machine mode CSRs
 
@@ -451,24 +451,24 @@ class PCR64<bits<16> num, string n> : RISCVReg<n> {
 // User-mode CSRs
 
 // Floating-Point Accrued Exceptions.
-def fflags_64   : PCR64<0, "fflags">
+def fflags_64   : PCR64<0, "fflags">;
 // Floating-Point Dynamic Rounding Mode.
-def frm_64      : PCR64<1, "frm">
+def frm_64      : PCR64<1, "frm">;
 // Floating-Point Control and Status Register (frm+fflags).
-def fcsr_64     : PCR64<2, "fcsr">
+def fcsr_64     : PCR64<2, "fcsr">;
 // Cycle counter for RDCYCLE
-def cycle_64    : PCR64<0xC00, "cycle">
+def cycle_64    : PCR64<0xC00, "cycle">;
 // Time for RDTIME
-def time_64     : PCR64<0xC01, "time">
+def time_64     : PCR64<0xC01, "time">;
 // Instructions retired for RDINSTRET
-def instret_64  : PCR64<0xC02, "instret">
+def instret_64  : PCR64<0xC02, "instret">;
 
 // Tagged memory CSRs (FIXME not final numbers!)
 
 // Bits indicate which tags to trap on on LDCT
-def ld_tag_64   : PCR64<4, "ld_tag">
+def ld_tag_64   : PCR64<4, "ld_tag">;
 // Bits indicate which tags to trap on on SDCT
-def sd_tag_64   : PCR64<5, "sd_tag">
+def sd_tag_64   : PCR64<5, "sd_tag">;
 
 // FIXME add supervisor, hypervisor and machine mode CSRs
 
