@@ -24,5 +24,6 @@ let TargetPrefix = "riscv" in {
   def int_riscv_ltag : Intrinsic<[llvm_i64_ty],
                        [llvm_ptr_ty],
                        [IntrReadWriteArgMem, NoCapture<0>]>;
-  def int_riscv_init_tm : Intrinsic<[], [], []>;
+  def int_riscv_set_tm_trap_ld : Intrinsic<[llvm_i64_ty], [], []>;
+  def int_riscv_set_tm_trap_sd : Intrinsic<[llvm_i64_ty], [], []>;
 }
