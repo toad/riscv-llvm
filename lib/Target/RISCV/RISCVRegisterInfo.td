@@ -438,11 +438,9 @@ def fromhost : PCR<31,"cr31">;
 //PCRs 
 defm PCRReg : RISCVRegClass<"PCRReg", i32, 32, (add
   //read/write
-  status, epc, evec, ptbr, asid, count, compare, sup0, sup1, tohost, fromhost,
+  fflags, frm, fcsr,
   //read only
-  badvaddr, cause, hartid, impl, 
-  //write only
-  fatc,  send_ipi, clear_ipi), 0>;
+  cycle, time, instret, cycleh, timeh, instreth), 0>;
 
 class PCR64<bits<16> num, string n> : RISCVReg<n> {
   let HWEncoding = num;
@@ -531,13 +529,9 @@ def fromhost_64 : PCR64<31,"cr31">;
 //PCRs (64-bit)
 defm PCR64Reg : RISCVRegClass<"PCR64Reg", i64, 64, (add
   //read/write
-  status_64, epc_64, evec_64, ptbr_64, asid_64, count_64, compare_64, 
-  sup0_64, sup1_64, tohost_64, fromhost_64,
+  fflags_64, frm_64, fcsr_64,
   //read only
-  badvaddr_64, cause_64, hartid_64, impl_64, 
-  //write only
-  fatc_64,  send_ipi_64, clear_ipi_64), 0>;
-
+  cycle_64, time_64, instret_64, ld_tag_64, sd_tag_64), 0>;
 
 //===----------------------------------------------------------------------===//
 // Other registers
