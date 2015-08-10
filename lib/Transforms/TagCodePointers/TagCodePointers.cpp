@@ -205,7 +205,7 @@ namespace {
                            "__llvm_riscv_init_tagged_memory_csrs", &M);
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
-      Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_init_tm);
+      Value *TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_init_tm);
       builder.CreateCall(TheFn);
       builder.CreateRetVoid();
       appendToGlobalCtors(M, f, 0);
