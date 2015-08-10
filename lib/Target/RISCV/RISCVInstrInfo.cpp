@@ -494,13 +494,9 @@ RISCVInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
     Opcode = RISCV::CSRW;
     BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
       .addReg(SrcReg, getKillRegState(KillSrc));
-    return;  
-  }else {
-    std::string error = 
-      std::string("Impossible reg-to-reg copy from ")
-      +(RI.getName(SrcReg))+" to "+(RI.getName(DestReg));
-    llvm_unreachable(error.c_str());
-  }
+    return;
+  }else
+    llvm_unreachable("Impossible reg-to-reg copy");
 
   BuildMI(MBB, MBBI, DL, get(Opcode), DestReg)
     .addReg(SrcReg, getKillRegState(KillSrc))
