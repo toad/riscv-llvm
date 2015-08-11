@@ -381,7 +381,7 @@ def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Require
 
 def RISCV_SET_TM_TRAP_LD :
   InstRISCV<4, (outs), (ins GR64:$src),
-            "csrw\tld_tag_64, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
+            "csrw\tld_tag, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
   field bits<32> Inst;
   
   bits<5> RS1;
@@ -396,7 +396,7 @@ def RISCV_SET_TM_TRAP_LD :
 
 def RISCV_SET_TM_TRAP_SD :
   InstRISCV<4, (outs), (ins GR64:$src),
-            "csrw\tsd_tag_64, $src", [(int_riscv_set_tm_trap_sd GR64:$src)]> {
+            "csrw\tsd_tag, $src", [(int_riscv_set_tm_trap_sd GR64:$src)]> {
   field bits<32> Inst;
   
   bits<5> RS1;
