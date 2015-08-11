@@ -365,9 +365,26 @@ let isReturn = 1, isTerminator = 1, isBarrier = 1, hasCtrlDep = 1,
 // 64-bit CSR access (some of the regs are available in user mode)
 //===----------------------------------------------------------------------===//
 
-def CSRR_64: CSRRGeneric<GR64, PCR64Reg, (set GR64:$dst, PCR64Reg:$csr)>,Requires<[IsRV64]>;
+// FIXME This is a hack.
+// I added CSRR/CSRW but the instruction selector decided to do wierd things with them ("csrr x5, x5" as a solution to signextend, in spite of apparently specifying register classes), so I removed them.
+// The user-mode CSRs aren't used at the moment anyway, and there's no exception handling.
 
-def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Requires<[IsRV64]>;
+class CSRWGeneric<RegisterOperand cls1, RegisterOperand csr1,
+                  dag Dag>
+  : InstRISCV<4, (outs csr1:$csr), (ins cls1:$src),
+              "csrw\t$csr, $src", [Dag]> {
+  field bits<32> Inst;
+  
+  bits<12> CSR;
+  bits<5> RS1;
+
+  // Encoded as CSRRW z0, csr, rs1
+  let Inst{31-20} = CSR;
+  let Inst{19-15} = RS1;
+  let Inst{14-12} = 0b001;
+  let Inst{11-7} = 0;
+  let Inst{6-0} = 0b1110011;
+}
 
 // FIXME The below will break when we start generating object code, if register numbers have changed.
 // It is only used for setting up tag exceptions in initialization.
@@ -376,8 +393,6 @@ def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Require
 // FIXME How do we specify a specific register?
 // FIXME How do we even turn a constant integer into a bitfield?!
 // E.g. "let Inst{31-20} = ld_tag_64.HWEncoding{11-0}" gives an error...
-
-// Fortunately this is a dirty hack that really shouldn't be here anyway...
 
 def RISCV_SET_TM_TRAP_LD :
   InstRISCV<4, (outs), (ins GR64:$src),
