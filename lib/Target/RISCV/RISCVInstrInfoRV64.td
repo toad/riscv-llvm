@@ -379,7 +379,6 @@ def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Require
 
 // Fortunately this is a dirty hack that really shouldn't be here anyway...
 
-let Defs = [ld_tag_64], Uses = [ld_tag_64] in
 def RISCV_SET_TM_TRAP_LD :
   InstRISCV<4, (outs), (ins GR64:$src),
             "csrw\tld_tag_64, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
@@ -395,7 +394,6 @@ def RISCV_SET_TM_TRAP_LD :
   let Inst{6-0} = 0b1110011;
 }
 
-let Defs = [sd_tag_64], Uses = [sd_tag_64] in
 def RISCV_SET_TM_TRAP_SD :
   InstRISCV<4, (outs), (ins GR64:$src),
             "csrw\tsd_tag_64, $src", [(int_riscv_set_tm_trap_sd GR64:$src)]> {
