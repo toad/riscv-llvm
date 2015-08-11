@@ -349,9 +349,15 @@ def FENCE: InstRISCV<4, (outs), (ins fenceImm:$pred, fenceImm:$succ), "fence",
 // The others are generally complicated atomic operations.
 // Supporting them would require adding more intrinsics.
 
-def CSRR: InstRISCV<4, (outs GR32:$dst), (ins PCRReg:$csr),
+// We only need CSRR and CSRW for exception handling etc.
+// The others are generally complicated atomic operations.
+// Supporting them would require adding more intrinsics.
+
+class CSRRGeneric<RegisterOperand cls1, RegisterOperand csr1,
+                  dag Dag>
+  : InstRISCV<4, (outs cls1:$dst), (ins csr1:$csr),
               "csrr\t$dst, $csr",
-              [(set GR32:$dst, PCRReg:$csr)]>,Requires<[IsRV32]> {
+              [Dag]> {
   field bits<32> Inst;
   
   bits<12> CSR;
@@ -365,9 +371,12 @@ def CSRR: InstRISCV<4, (outs GR32:$dst), (ins PCRReg:$csr),
   let Inst{6-0} = 0b1110011;
 }
 
-def CSRW: InstRISCV<4, (outs PCRReg:$csr), (ins GR32:$src),
-              "csrw\t$csr, $src",
-              [(set PCRReg:$csr, GR32:$src)]>,Requires<[IsRV32]> {
+def CSRR: CSRRGeneric<GR32, PCRReg, (set GR32:$dst, PCRReg:$csr)>,Requires<[IsRV32]>;
+
+class CSRWGeneric<RegisterOperand cls1, RegisterOperand csr1,
+                  dag Dag>
+  : InstRISCV<4, (outs csr1:$csr), (ins cls1:$src),
+              "csrw\t$csr, $src", [Dag]> {
   field bits<32> Inst;
   
   bits<12> CSR;
@@ -380,6 +389,8 @@ def CSRW: InstRISCV<4, (outs PCRReg:$csr), (ins GR32:$src),
   let Inst{11-7} = 0;
   let Inst{6-0} = 0b1110011;
 }
+
+def CSRW: CSRWGeneric<GR32, PCRReg, (set PCRReg:$csr, GR32:$src)>,Requires<[IsRV32]>;
 
 //===----------------------------------------------------------------------===//
 // Subtarget features
