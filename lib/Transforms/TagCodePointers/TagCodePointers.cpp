@@ -186,8 +186,8 @@ namespace {
       return true;
     }
     
-    const long LD_TAG_CSR_VALUE = (1 << TAG_WRITE_ONLY) | (1 << TAG_INVALID);
-    const long SD_TAG_CSR_VALUE = (1 << TAG_READ_ONLY) | (1 << TAG_INVALID);
+    static const long LD_TAG_CSR_VALUE = (1 << IRBuilderBase::TAG_WRITE_ONLY) | (1 << IRBuilderBase::TAG_INVALID);
+    static const long SD_TAG_CSR_VALUE = (1 << IRBuilderBase::TAG_READ_ONLY) | (1 << IRBuilderBase::TAG_INVALID);
     
     void addSetupCSRs(Module &M, LLVMContext &Context) {
       // FIXME This is yet another gross hack. :)
@@ -209,9 +209,9 @@ namespace {
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
       Value *TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_set_tm_trap_ld);
-      builder.CreateCall(TheFn, getInt64(LD_TAG_CSR_VALUE));
+      builder.CreateCall(TheFn, getInt64(LD_TAG_CSR_VALUE, Context));
       TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_set_tm_trap_sd);
-      builder.CreateCall(TheFn, getInt64(SD_TAG_CSR_VALUE));
+      builder.CreateCall(TheFn, getInt64(SD_TAG_CSR_VALUE, Context));
       builder.CreateRetVoid();
       appendToGlobalCtors(M, f, 0);
     }
