@@ -369,6 +369,9 @@ def CSRR_64: CSRRGeneric<GR64, PCR64Reg, (set GR64:$dst, PCR64Reg:$csr)>,Require
 
 def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Requires<[IsRV64]>;
 
+// FIXME The below will break when we start generating object code, if register numbers have changed.
+// It is only used for setting up tag exceptions in initialization.
+
 // FIXME These are really horrible!
 // FIXME How do we specify a specific register?
 // FIXME How do we even turn a constant integer into a bitfield?!
