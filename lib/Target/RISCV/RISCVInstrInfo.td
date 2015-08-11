@@ -349,10 +349,6 @@ def FENCE: InstRISCV<4, (outs), (ins fenceImm:$pred, fenceImm:$succ), "fence",
 // The others are generally complicated atomic operations.
 // Supporting them would require adding more intrinsics.
 
-// We only need CSRR and CSRW for exception handling etc.
-// The others are generally complicated atomic operations.
-// Supporting them would require adding more intrinsics.
-
 class CSRRGeneric<RegisterOperand cls1, RegisterOperand csr1,
                   dag Dag>
   : InstRISCV<4, (outs cls1:$dst), (ins csr1:$csr),
