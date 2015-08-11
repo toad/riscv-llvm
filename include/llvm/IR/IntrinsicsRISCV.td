@@ -18,6 +18,7 @@
 let TargetPrefix = "riscv" in {
   // FIXME can we talk about alignment? Want to be a pointer to a 64-bit type?
   // FIXME Request review on choice of Intr*Mem!
+  // FIXME these should be i8 but that would mean more work in lowering
   def int_riscv_stag : Intrinsic<[],
                        [llvm_i64_ty, llvm_ptr_ty],
                        [IntrReadWriteArgMem, NoCapture<1>]>;
@@ -26,4 +27,9 @@ let TargetPrefix = "riscv" in {
                        [IntrReadWriteArgMem, NoCapture<0>]>;
   def int_riscv_set_tm_trap_ld : Intrinsic<[], [llvm_i64_ty], []>;
   def int_riscv_set_tm_trap_sd : Intrinsic<[], [llvm_i64_ty], []>;
+  // Atomically write a value with a specified tag to a memory location.
+  // Arg 0 = value to write, arg 1 = tag, arg 2 = pointer to write to.
+  def int_riscv_store_tagged : Intrinsic<[],
+                                         [llvm_i64_ty, llvm_i64_ty, llvm_ptr_ty],
+                                         [IntrReadWriteArgMem, NoCapture<2>]>;
 }
