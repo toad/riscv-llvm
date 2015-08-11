@@ -369,4 +369,46 @@ def CSRR_64: CSRRGeneric<GR64, PCR64Reg, (set GR64:$dst, PCR64Reg:$csr)>,Require
 
 def CSRW_64: CSRWGeneric<GR64, PCR64Reg, (set PCR64Reg:$csr, GR64:$src)>,Requires<[IsRV64]>;
 
+// FIXME These are really horrible!
+// FIXME How do we specify a specific register?
+// FIXME How do we even turn a constant integer into a bitfield?!
+// E.g. "let Inst{31-20} = ld_tag_64.HWEncoding{11-0}" gives an error...
+
+// Fortunately this is a dirty hack that really shouldn't be here anyway...
+
+let Defs = [ld_tag_64], Uses = [ld_tag_64] in
+def RISCV_SET_TM_TRAP_LD :
+  InstRISCV<4, (outs), (ins GR64:$src),
+            "csrw\tld_tag_64, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
+  field bits<32> Inst;
+  
+  bits<5> RS1;
+
+  // Encoded as CSRRW z0, csr, rs1
+  let Inst{31-20} = 4; // FIXME AAAAAAAAAAARRRRRRGGGGHHHHHHHH!
+  let Inst{19-15} = RS1;
+  let Inst{14-12} = 0b001;
+  let Inst{11-7} = 0;
+  let Inst{6-0} = 0b1110011;
+}
+
+let Defs = [sd_tag_64], Uses = [sd_tag_64] in
+def RISCV_SET_TM_TRAP_SD :
+  InstRISCV<4, (outs), (ins GR64:$src),
+            "csrw\tsd_tag_64, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
+  field bits<32> Inst;
+  
+  bits<5> RS1;
+
+  // Encoded as CSRRW z0, csr, rs1
+  let Inst{31-20} = 5; // FIXME AAAAAAAAAAARRRRRRGGGGHHHHHHHH!
+  let Inst{19-15} = RS1;
+  let Inst{14-12} = 0b001;
+  let Inst{11-7} = 0;
+  let Inst{6-0} = 0b1110011;
+}
+
+
+
+//def RISCV_SET_TM_TRAP_LD : CSRWGeneric<GR64, PCR64Reg, (int_riscv_set_tm_trap_ld GR64:$src)>,Requires<[IsRV64]>;
 
