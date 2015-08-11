@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 	assert(__riscv_load_tag(&array[0]) == __RISCV_TAG_NONE);
 	array[0] = 0;
 	/* Lazy tag gets cleared on a normal write */
-	__riscv_store_tag(&array[0], __RISCV_TAG_LAZY);
+	__riscv_store_tag(&array[0], __RISCV_TAG_CLEAN_FPTR);
 	array[0] = 1;
 	assert(__riscv_load_tag(&array[0]) == __RISCV_TAG_NONE);
 	printf("Success!\n");
