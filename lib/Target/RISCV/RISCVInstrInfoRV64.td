@@ -398,7 +398,7 @@ def RISCV_SET_TM_TRAP_LD :
 let Defs = [sd_tag_64], Uses = [sd_tag_64] in
 def RISCV_SET_TM_TRAP_SD :
   InstRISCV<4, (outs), (ins GR64:$src),
-            "csrw\tsd_tag_64, $src", [(int_riscv_set_tm_trap_ld GR64:$src)]> {
+            "csrw\tsd_tag_64, $src", [(int_riscv_set_tm_trap_sd GR64:$src)]> {
   field bits<32> Inst;
   
   bits<5> RS1;
