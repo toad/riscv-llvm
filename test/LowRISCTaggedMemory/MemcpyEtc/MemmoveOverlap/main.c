@@ -12,7 +12,7 @@
 #include <sys/platform/tag.h>
 #define load_tag __riscv_load_tag
 #define store_tag __riscv_store_tag
-#define LAZY __RISCV_TAG_LAZY
+#define LAZY __RISCV_TAG_CLEAN_FPTR
 #define READ_ONLY __RISCV_TAG_READ_ONLY
 #endif
 
