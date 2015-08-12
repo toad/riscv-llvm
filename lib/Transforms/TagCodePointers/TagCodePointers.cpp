@@ -538,6 +538,7 @@ namespace {
     }
 
     bool runOnBasicBlock(BasicBlock &BB) {
+      Module &M = *(BB.getParent()->getParent());
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
       BasicBlock::InstListType& instructions = BB.getInstList();
@@ -566,7 +567,7 @@ namespace {
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
             instructions.remove(it);
-            createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, BB.getParent()->getParent(), shouldTag);
+            createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, M, shouldTag);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
@@ -590,7 +591,7 @@ namespace {
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
-            createCheckTagged(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
+            createCheckTagged(instructions, it, ptr, M, shouldTag);
             doneSomething = true;
           }
         }
