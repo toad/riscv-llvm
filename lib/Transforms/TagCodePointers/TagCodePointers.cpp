@@ -565,7 +565,8 @@ namespace {
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
-            createSTag(instructions, it, ptr, BB.getParent()->getParent(), shouldTag);
+            instructions.remove(it);
+            createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, BB.getParent()->getParent(), shouldTag);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
@@ -633,6 +634,20 @@ namespace {
       Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_stag);
       CallInst *CI = CallInst::Create(TheFn, Ops, "");
       // Set tag afterwards.
+      instructions.insertAfter(it, CI);
+    }
+
+    void createStoreAndSetTag(BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it, Value *DataValue, 
+                         Value *Ptr, Module *M, IRBuilderBase::LowRISCMemoryTag tag) {
+      assert(isa<PointerType>(Ptr->getType()) &&
+       "stag only applies to pointers.");
+      LLVMContext &Context = M->getContext();
+      Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
+      Value *TagValue = getInt64(tag, Context);
+      Value *Ops[] = { DataValue, TagValue, Ptr };
+      Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_store_tagged);
+      CallInst *CI = CallInst::Create(TheFn, Ops, "");
       instructions.insertAfter(it, CI);
     }
 
