@@ -17,11 +17,21 @@ case "$build" in
 		;;
 esac
 for x in Test SubclassTest; do
-	echo Building ${x}.cc with clang
-	clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S ${x}.cc -emit-llvm -o ${x}.ll -fno-exceptions -DCHECK_TAGS || exit 2
-	opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${x}.ll > ${x}.opt.bc || exit 3
-	llvm-dis ${x}.opt.bc > ${x}.opt.ll
-	llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
+	case $build in
+	"gcc")
+		riscv64-unknown-elf-g++ -S $INCLUDES ${x}.cc -o ${x}.s -fno-exceptions -fno-stack-protector
+		;;
+	"gcc-linux")
+		riscv64-unknown-linux-gnu-g++ -S $INCLUDES ${x}.cc -o ${x}.s -fno-exceptions -fno-stack-protector
+		;;
+	"clang"|"clang-linux")
+		echo Building ${x}.cc with clang
+		clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S ${x}.cc -emit-llvm -o ${x}.ll -fno-exceptions -DCHECK_TAGS || exit 2
+		opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${x}.ll > ${x}.opt.bc || exit 3
+		llvm-dis ${x}.opt.bc > ${x}.opt.ll
+		llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
+		;;
+	esac
 done
 for main in main-*.cc; do
 		rm -f main*.s
