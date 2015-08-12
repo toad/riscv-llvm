@@ -26,6 +26,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/ConstantFolder.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
 using namespace llvm;
 
@@ -516,6 +517,8 @@ namespace {
     
     Function *FunctionCheckTagged = NULL;
 
+    ConstantFolder Folder; // FIXME Remove when use IRBuilder for more.
+
     static char ID; // Pass identification, replacement for typeid
     TagCodePointers() : FunctionPass(ID) {}
 
@@ -538,9 +541,10 @@ namespace {
     }
 
     bool runOnBasicBlock(BasicBlock &BB) {
-      Module &M = *(BB.getParent()->getParent());
+      Module *M = BB.getParent()->getParent();
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
+      std::vector<Instruction*> toDelete;
       BasicBlock::InstListType& instructions = BB.getInstList();
       for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
@@ -565,9 +569,10 @@ namespace {
             shouldTag = shouldTagBitCastInstruction(ptr);
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
-            errs() << "Should tag the load: " << shouldTag << "\n";
-            instructions.remove(it);
+            errs() << "Should tag the store: " << shouldTag << "\n";
             createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, M, shouldTag);
+            errs() << "Added store and set tag\n";
+            toDelete.push_back(&s);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
@@ -595,6 +600,10 @@ namespace {
             doneSomething = true;
           }
         }
+      }
+      for(std::vector<Instruction*>::iterator it = toDelete.begin(); it != toDelete.end(); it++) {
+        errs() << "Deleting instruction " << *it << "\n";
+        (*it)->eraseFromParent();
       }
       getFunctionCheckTagged();
       return doneSomething;
@@ -646,7 +655,7 @@ namespace {
       LLVMContext &Context = M->getContext();
       Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
       // FIXME will only work with pointers, change if move to somewhere more generic.
-      DataValue = CreatePtrToInt(DataValue, Type::getInt64Ty(Context));
+      DataValue = CreatePtrToInt(DataValue, Type::getInt64Ty(Context), Context, instructions, it);
       Value *TagValue = getInt64(tag, Context);
       Value *Ops[] = { DataValue, TagValue, Ptr };
       Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_store_tagged);
@@ -683,17 +692,24 @@ namespace {
     }
     
     Value *CreatePtrToInt(Value *V, Type *DestTy,
-                          const Twine &Name = "") {
-      return CreateCast(Instruction::PtrToInt, V, DestTy, Name);
+                         LLVMContext &Context,
+                         BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it,
+                         const Twine &Name = "") {
+      return CreateCast(Instruction::PtrToInt, V, DestTy, instructions, it, Name);
     }
 
     Value *CreateCast(Instruction::CastOps Op, Value *V, Type *DestTy,
+                      BasicBlock::InstListType& instructions, 
+                      BasicBlock::InstListType::iterator it,
                       const Twine &Name = "") {
       if (V->getType() == DestTy)
         return V;
       if (Constant *VC = dyn_cast<Constant>(V))
-        return Insert(Folder.CreateCast(Op, VC, DestTy), Name);
-      return Insert(CastInst::Create(Op, V, DestTy), Name);
+        return Folder.CreateCast(Op, VC, DestTy);
+      Instruction *Inst = CastInst::Create(Op, V, DestTy);
+      instructions.insert(it, Inst);
+      return Inst;
     }
 
     Function *getFunctionCheckTagged() {
