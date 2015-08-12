@@ -645,6 +645,8 @@ namespace {
        "stag only applies to pointers.");
       LLVMContext &Context = M->getContext();
       Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
+      // FIXME will only work with pointers, change if move to somewhere more generic.
+      DataValue = CreatePtrToInt(DataValue, Type::getInt64Ty(Context));
       Value *TagValue = getInt64(tag, Context);
       Value *Ops[] = { DataValue, TagValue, Ptr };
       Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_store_tagged);
@@ -680,6 +682,20 @@ namespace {
       return BCI;
     }
     
+    Value *CreatePtrToInt(Value *V, Type *DestTy,
+                          const Twine &Name = "") {
+      return CreateCast(Instruction::PtrToInt, V, DestTy, Name);
+    }
+
+    Value *CreateCast(Instruction::CastOps Op, Value *V, Type *DestTy,
+                      const Twine &Name = "") {
+      if (V->getType() == DestTy)
+        return V;
+      if (Constant *VC = dyn_cast<Constant>(V))
+        return Insert(Folder.CreateCast(Op, VC, DestTy), Name);
+      return Insert(CastInst::Create(Op, V, DestTy), Name);
+    }
+
     Function *getFunctionCheckTagged() {
       if(FunctionCheckTagged) return FunctionCheckTagged;
       FunctionCheckTagged = getAnalysis<TagCodePointersBase>().getFunctionCheckTagged();
