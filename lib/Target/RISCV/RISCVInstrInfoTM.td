@@ -19,7 +19,7 @@ def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requ
 // FIXME Add an intrinsic to tag a value when we have a move operation. Then we can clean this up.
 
 def WRT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src2, GR64:$src1), 
-                "wrt\t$dst, $src1, $src2", 
+                "wrt\t$dst, $src2, $src1", 
                 []> {
   field bits<32> Inst;
 
