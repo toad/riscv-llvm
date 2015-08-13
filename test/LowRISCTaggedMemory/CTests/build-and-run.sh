@@ -2,7 +2,7 @@
 rm -f *.ll *.bc *.riscv *.s
 for compiler in clang gcc-force-tags gcc-no-tags
 do
-	./build.sh $compiler
+	./build.sh $compiler || exit 1
 	for x in main-*.c
 	do
 		# main-simple.c just checks that tags work, so don't build for gcc-no-tags
