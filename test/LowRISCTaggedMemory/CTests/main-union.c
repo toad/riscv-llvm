@@ -21,7 +21,8 @@ typedef union {
 } fnptr_long_union;
 
 int main(int argc, char **argv) {
-	fnptr_long_union u;
+	// Volatile to avoid it squashing the access to u.value.
+	volatile fnptr_long_union u;
 #ifndef NO_TAGS
 	assert(load_tag(&u) == 0);
 #endif
