@@ -67,11 +67,11 @@ for main in main*.c fail*.c; do
 			INCLUDES="$INCLUDES_GLIBC"
 		fi
 		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
-		OPTS="-O2 -loop-reduce"
+		OPTS="-O2 -scalar-evolution -loop-reduce"
 		if echo "${main}" | grep "^fail-"; then
 			# Testing undefined behaviour
 			# Behaviour will depend on optimisation level
-			OPTS="-O0"
+			OPTS=""
 		fi
 		if ! opt -load $TOP/riscv-llvm/build/Debug+Asserts/lib/LLVMTagCodePointers.so $OPTS -tag-code-pointers < ${main}.ll > ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
 		if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
