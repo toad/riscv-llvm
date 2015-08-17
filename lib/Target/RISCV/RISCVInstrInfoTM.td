@@ -47,4 +47,4 @@ def WRT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src2, GR64:$src1),
 
 // Write a tagged value to memory
 def : Pat<(int_riscv_store_tagged GR64Bit:$val, GR64Bit:$tag, GR64Bit:$addr), 
-          (SD (WRT GR64Bit:$val, GR64Bit:$tag), GR64Bit:$addr, 0)>;
+          (SDCT (WRT GR64Bit:$val, GR64Bit:$tag), GR64Bit:$addr, 0)>;
