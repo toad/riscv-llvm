@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
 //                  (unsigned char)load_tag(&aa[i+1]));
 //	}
 	for(i=0;i<LENGTH-1;i++) {
-		assert(bb[i] = aa[i+1]);
+		assert(bb[i] == aa[i+1]);
 		assert(load_tag(&bb[i]) == load_tag(&aa[i+1]));
 	}
 #endif /* LENGTH > 1 */
