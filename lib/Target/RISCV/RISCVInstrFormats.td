@@ -178,6 +178,7 @@ class InstR4<string mnemonic, bits<7> op, bits<5> funct5,
   let Inst{11- 7} = funct5;
   let Inst{6 - 0} = op;
 }
+
 //Load-Type
 class InstLoad<string mnemonic, bits<7> op, bits<3> funct3,
             SDPatternOperator opNode,
@@ -200,6 +201,28 @@ class InstLoad<string mnemonic, bits<7> op, bits<3> funct3,
   let Inst{6 - 0} = op;
 }
 
+// Load type instruction with no patterns, used internally.
+// Fields aren't inherited, so we have to duplicate InstLoad. :(
+class InstLoadNONE<string mnemonic, bits<7> op, bits<3> funct3,
+                   RegisterOperand cls1,
+                   Operand memOp>
+  : InstRISCV<4, (outs cls1:$dst), (ins memOp:$addr), 
+                mnemonic#"\t$dst, $addr", 
+                []> {
+  field bits<32> Inst;
+
+  bits<5> RD;
+  bits<5> RS1;
+  bits<12> IMM;
+
+  let Inst{31-27} = RD;
+  let Inst{26-22} = RS1;
+  let Inst{21-17} = IMM{11-7};
+  let Inst{16-10} = IMM{6 -0};
+  let Inst{9 - 7} = funct3;
+  let Inst{6 - 0} = op;
+}
+
 class InstStore<string mnemonic, bits<7> op, bits<3> funct3,
                 SDPatternOperator opNode,
                 RegisterOperand cls1,
@@ -207,6 +230,28 @@ class InstStore<string mnemonic, bits<7> op, bits<3> funct3,
   : InstRISCV<4, (outs), (ins cls1:$src, memOp:$addr),
               mnemonic#"\t$src, $addr", 
               [(opNode cls1:$src, addr:$addr)]> {
+  field bits<32> Inst;
+
+  bits<5> RS2;
+  bits<5> RS1;
+  bits<12> IMM;
+
+  let Inst{31-27} = IMM{11-7};
+  let Inst{26-22} = RS1;
+  let Inst{21-17} = RS2;
+  let Inst{16-10} = IMM{6 -0};
+  let Inst{9 - 7} = funct3;
+  let Inst{6 - 0} = op;
+}
+
+// Store type instruction with no patterns, used internally.
+// Fields aren't inherited, so we have to duplicate InstStore. :(
+class InstStoreNONE<string mnemonic, bits<7> op, bits<3> funct3,
+                    RegisterOperand cls1,
+                    Operand memOp>
+  : InstRISCV<4, (outs), (ins cls1:$src, memOp:$addr),
+              mnemonic#"\t$src, $addr", 
+              []> {
   field bits<32> Inst;
 
   bits<5> RS2;

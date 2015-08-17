@@ -13,6 +13,17 @@ def STAG : InstStore<"stag", 0b1010111, 0b001, int_riscv_stag, GR64, mem64>, Req
 // Treat as InstLoad
 def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requires<[IsRV64, HasTM]>;
 
+// Note that there are no intrinsics to set tags on values.
+// The main reason for this is that most of the tags have side-effects in memory, so e.g. register
+// spilling would be difficult.
+
+// Atomically load, check tag and propagate tag into register.
+def LDCT : InstLoadNONE<"ldct", 0b1010111, 0b100, GR64, mem64>, Requires<[IsRV64, HasTM]>;
+
+// Atomically check existing tag, store both value and tag from register.
+let mayStore = 1 in
+def SDCT : InstStoreNONE<"sdct", 0b1010111, 0b101, GR64, mem64>, Requires<[IsRV64, HasTM]>;
+
 // rs1.value, rs2.value -> rd.value, rd.tag
 
 // FIXME Copied here because it has no operations, and we can't encode that using InstI.
