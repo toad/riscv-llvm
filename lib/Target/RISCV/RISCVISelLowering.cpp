@@ -1707,7 +1707,7 @@ SDValue RISCVTargetLowering::lowerIntriniscLoadTagged(SDValue Op,
   SDValue ptr = Op.getOperand(OpNo);
   EVT type = ptr.getValueType();
   errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
-  assert(type == MVT::iPTRAny);
+  assert(type == MVT::iPTR);
   SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
   // LDCT
   EVT Types[] = { MVT::i64, MVT::Other };
