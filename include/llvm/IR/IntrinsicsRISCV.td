@@ -32,4 +32,13 @@ let TargetPrefix = "riscv" in {
   def int_riscv_store_tagged : Intrinsic<[],
                                          [llvm_i64_ty, llvm_i64_ty, llvm_ptr_ty],
                                          [IntrReadWriteArgMem, NoCapture<2>]>;
+  // Atomically load a 64-bit aligned value from memory with its tag.
+  // FIXME Consider using anyptr here, then don't need so many bitcasts. Downside is might need a separate one for i64.
+  // Would need to use LLVMMatchType and maybe LLVMPointerType, see overflow arithmetic intrinsics.
+  // FIXME Use i64 ptr.
+  // FIXME Change second return to be an i8.
+  def int_riscv_load_tagged : Intrinsic<[llvm_i64_ty, llvm_i64_ty],
+                                        [llvm_ptr_ty],
+                                        [IntrReadArgMem, NoCapture<0>]>;
+                                        
 }
