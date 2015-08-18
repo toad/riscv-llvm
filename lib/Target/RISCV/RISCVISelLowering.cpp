@@ -287,7 +287,7 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
     setLibcallName(RTLIB::MEMMOVE_NO_TAGS, "__riscv_memmove_no_tags");
 
     // Custom lowering for some intrinsics.
-    setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::i64, Custom);
+    setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
   }
 
   setOperationAction(ISD::SMUL_LOHI, MVT::i32, Expand);
