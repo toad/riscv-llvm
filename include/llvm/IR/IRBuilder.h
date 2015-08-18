@@ -359,6 +359,11 @@ public:
   ///
   CallInst *CreateRISCVLoadTag(Value *Ptr);
 
+  /// \brief Create a riscv.load.tagged intrinsic. (Platform specific!!)
+  /// 
+  /// Atomically loads both a value and the tag.
+  CallInst *CreateRISCVLoadTagAndValue(Value *Ptr);
+
   /// \brief Fail
   CallInst *CreateTrap();
 

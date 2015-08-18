@@ -210,8 +210,10 @@ namespace {
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
       Value *TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_set_tm_trap_ld);
+      errs() << "Function is " << *TheFn << "\n";
       builder.CreateCall(TheFn, getInt64(LD_TAG_CSR_VALUE, Context));
       TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_set_tm_trap_sd);
+      errs() << "Function is " << *TheFn << "\n";
       builder.CreateCall(TheFn, getInt64(SD_TAG_CSR_VALUE, Context));
       builder.CreateRetVoid();
       appendToGlobalCtors(M, f, 0);
@@ -465,6 +467,8 @@ namespace {
     }
 
     bool addCheckTagged(Module &M, LLVMContext &Context) {
+      // FIXME Return a value, replace the original load -> atomicity.
+
       AttributeSet fnAttributes;
       Function *f = M.getFunction("__llvm_riscv_check_tagged");
       if(f) {
@@ -485,8 +489,15 @@ namespace {
       BasicBlock* onTagged = BasicBlock::Create(Context, "entry", f);
       BasicBlock* onNotTagged = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
-      Value *ltag = builder.CreateRISCVLoadTag(ptr);
-      Value *ltagEqualsOne = builder.CreateICmpEQ(ltag, tagval);
+      
+      Value *loadWithTag = builder.CreateRISCVLoadTagAndValue(ptr);
+      errs() << "Return type of load with tag is " << *(loadWithTag->getType()) << "\n";
+      assert(isa<StructType>(loadWithTag->getType()));
+      Value *tag = builder.CreateExtractValue(loadWithTag, 1);
+      errs() << "Got tag type " << *tag << "\n";
+      assert(isa<IntegerType>(tag->getType()));
+
+      Value *ltagEqualsOne = builder.CreateICmpEQ(tag, tagval);
       builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
       builder.SetInsertPoint(onTagged);
       builder.CreateRetVoid();
