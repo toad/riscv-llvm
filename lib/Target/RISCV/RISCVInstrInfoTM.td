@@ -7,6 +7,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+// FIXME Consider adding tags as separate registers.
+// Register tag operations could then be expressed directly.
+// Memory ops are less clear-cut. We could use an address space but because of side-effects it might not do what we want?
+// Probably still need some custom lowering?
+
 // Treat as InstStore
 def STAG : InstStore<"stag", 0b1010111, 0b001, int_riscv_stag, GR64, mem64>, Requires<[IsRV64, HasTM]>;
 
@@ -45,6 +50,26 @@ def WRT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src2, GR64:$src1),
   let Inst{6 - 0} = 6; // Will change!
 }
 
+def RDT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src),
+                    "rdt\t$dst, $src",
+                    []> {
+  field bits<32> Inst;
+
+  bits<5> RD;
+  bits<5> RS1;
+
+  let Inst{31-27} = RD;
+  let Inst{26-22} = RS1;
+  let Inst{21-17} = 0;
+  let Inst{16- 7} = 0; // Will change!
+  let Inst{6 - 0} = 7; // Will change!
+}
+
+// FIXME These are not really atomic, register allocation spills could break them completely.
+// FIXME Replace with pseudo-instructions.
+
 // Write a tagged value to memory
 def : Pat<(int_riscv_store_tagged GR64Bit:$val, GR64Bit:$tag, GR64Bit:$addr), 
           (SDCT (WRT GR64Bit:$val, GR64Bit:$tag), GR64Bit:$addr, 0)>;
+
+
