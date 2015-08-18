@@ -25,6 +25,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Intrinsics.h"
 
 using namespace llvm;
 
@@ -284,6 +285,9 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
     setLibcallName(RTLIB::MEMMOVE_LONGS_WITH_TAGS, "__riscv_memmove_tagged_longs");
     setLibcallName(RTLIB::MEMCPY_NO_TAGS, "__riscv_memcpy_no_tags");
     setLibcallName(RTLIB::MEMMOVE_NO_TAGS, "__riscv_memmove_no_tags");
+
+    // Custom lowering for some intrinsics.
+    setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::i64, Custom);
   }
 
   setOperationAction(ISD::SMUL_LOHI, MVT::i32, Expand);
@@ -1686,6 +1690,65 @@ lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const {
   return FrameAddr;
 }
 
+SDValue RISCVTargetLowering::lowerIntriniscLoadTagged(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  errs() << "Lowering an int_riscv_load_tagged\n";
+  DebugLoc DL = Op.getDebugLoc();
+  unsigned OpNo = 0;
+  // First we have the chain.
+  errs() << "First argument is type " << Op.getOperand(OpNo).getValueType().getEVTString() << "\n";
+  assert(Op.getOperand(OpNo).getValueType() == MVT::Other);
+  SDValue Chain = Op.getOperand(OpNo);
+  OpNo++;
+  // Next we have the intrinsic number.
+  assert(Op.getOperand(OpNo).getOpcode() == ISD::TargetConstant);
+  OpNo++;
+  // Now the actual pointer argument.
+  SDValue ptr = Op.getOperand(OpNo);
+  EVT type = ptr.getValueType();
+  errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
+  assert(type == MVT::iPTRAny);
+  SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
+  // LDCT
+  EVT Types[] = { MVT::i64, MVT::Other };
+  SDValue Args[] = { ptr, Zero, Chain };
+  SDNode *LDCT = DAG.getMachineNode(RISCV::LDCT, DL, Types, Args);
+  SDValue LDCTReg(LDCT, 0);
+  SDValue LDCTChain(LDCT, 1);
+  assert(LDCTReg.getValueType() == MVT::i64);
+  assert(LDCTChain.getValueType() == MVT::Other);
+  // RDT
+  SDNode *RDT = DAG.getMachineNode(RISCV::RDT, DL, MVT::i64, MVT::Other, LDCTReg,
+                                   LDCTChain);
+  SDValue TagReg(RDT, 0);
+  SDValue RDTChain(RDT, 1);
+  assert(TagReg.getValueType() == MVT::i64);
+  assert(RDTChain.getValueType() == MVT::Other);
+  // WRT to prevent spurious propagation.
+  SDNode *WRT = DAG.getMachineNode(RISCV::WRT, DL, MVT::i64, MVT::Other, LDCTReg,
+                                   Zero, LDCTChain);
+  SDValue DataReg(WRT, 0);
+  SDValue WRTChain(RDT, 1);
+
+  // Merge the chains.  
+  SDValue Chains[] = { RDTChain, WRTChain };
+  SDValue MergeChain = DAG.getNode(ISD::TokenFactor, DL, MVT::Other, &Chains[0], 2);
+  // Now how do we return a structure?
+  SDValue Vals[] = { MergeChain, DataReg, TagReg };
+  SDValue MergeResults = DAG.getMergeValues(Vals, 3, DL);
+  return MergeResults;
+}
+
+SDValue RISCVTargetLowering::lowerINTRINSIC_W_CHAIN(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  switch (cast<ConstantSDNode>(Op->getOperand(1))->getZExtValue()) {
+  case Intrinsic::riscv_load_tagged:
+    return lowerIntriniscLoadTagged(Op, DAG);
+  default:
+    return SDValue(); // Not one of ours.
+  }
+}
+
 SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
                                               SelectionDAG &DAG) const {
   switch (Op.getOpcode()) {
@@ -1715,6 +1778,8 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
     return lowerSTACKRESTORE(Op, DAG);
   case ISD::FRAMEADDR:
     return lowerFRAMEADDR(Op, DAG);
+  case ISD::INTRINSIC_W_CHAIN:
+    return lowerINTRINSIC_W_CHAIN(Op, DAG);
   default:
     llvm_unreachable("Unexpected node to lower");
   }
