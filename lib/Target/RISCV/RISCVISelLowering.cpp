@@ -1717,14 +1717,14 @@ SDValue RISCVTargetLowering::lowerIntriniscLoadTagged(SDValue Op,
   SDNode *RDT = DAG.getMachineNode(RISCV::RDT, DL, MVT::i64, LDCTReg);
   SDValue TagReg(RDT, 0);
   assert(TagReg.getValueType() == MVT::i64);
-  // WRT to prevent spurious propagation. FIXME remove spurious WRT's later with a peephole pass.
+  // WRT to prevent spurious propagation.
   SDValue ZeroReg = DAG.getCopyFromReg(DAG.getEntryNode(), DL, RISCV::zero_64, MVT::i64);
   SDNode *WRT = DAG.getMachineNode(RISCV::WRT, DL, MVT::i64, LDCTReg, ZeroReg);
   SDValue DataReg(WRT, 0);
   assert(TagReg.getValueType() == MVT::i64);
 
   // Now how do we return a structure?
-  SDValue Vals[] = { Chain, DataReg, TagReg };
+  SDValue Vals[] = { DataReg, TagReg, Chain };
   SDValue MergeResults = DAG.getMergeValues(Vals, 3, DL);
   return MergeResults;
 }
