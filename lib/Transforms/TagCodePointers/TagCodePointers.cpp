@@ -28,6 +28,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/ConstantFolder.h"
 #include "llvm/Transforms/Utils/ModuleUtils.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 using namespace llvm;
 
 /* If true, tag pointers to structures including function pointers. */
@@ -478,7 +479,7 @@ namespace {
       Function *fail = addCheckTaggedFailed(M, Context);
       Type *params[] = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
                        IntegerType::get(Context, 64) };
-      FunctionType *type = FunctionType::get(Type::getVoidTy(Context), params,
+      FunctionType *type = FunctionType::get(IntegerType::get(Context, 64), params,
                                              false);
       f = Function::Create(type, GlobalValue::LinkOnceODRLinkage,
                            "__llvm_riscv_check_tagged", &M);
@@ -494,17 +495,18 @@ namespace {
       errs() << "Return type of load with tag is " << *(loadWithTag->getType()) << "\n";
       assert(isa<StructType>(loadWithTag->getType()));
       Value *tag = builder.CreateExtractValue(loadWithTag, 1);
+      Value *ret = builder.CreateExtractValue(loadWithTag, 0);
       errs() << "Got tag type " << *tag << "\n";
       assert(isa<IntegerType>(tag->getType()));
 
       Value *ltagEqualsOne = builder.CreateICmpEQ(tag, tagval);
       builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
       builder.SetInsertPoint(onTagged);
-      builder.CreateRetVoid();
+      builder.CreateRet(ret);
       builder.SetInsertPoint(onNotTagged);
 
       builder.CreateCall(fail);
-      builder.CreateRetVoid(); // FIXME Needs a terminal?
+      builder.CreateRet(getInt64(0, Context)); // Won't be called
       // FIXME add argument attribute NonNull, Dereferenceable to pointer.
       f -> addFnAttr(Attribute::AlwaysInline);
       f -> addFnAttr(Attribute::NoCapture);
@@ -550,12 +552,19 @@ namespace {
       }
       return added;
     }
+    
+    struct Replace {
+      Instruction *From;
+      Value *To;
+      Replace(Instruction *From, Value *To) : From(From), To(To) {};
+    };
 
     bool runOnBasicBlock(BasicBlock &BB) {
       Module *M = BB.getParent()->getParent();
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
       std::vector<Instruction*> toDelete;
+      std::vector<Replace> toReplace;
       BasicBlock::InstListType& instructions = BB.getInstList();
       for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
@@ -607,10 +616,19 @@ namespace {
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
-            createCheckTagged(instructions, it, ptr, M, shouldTag);
+            Value *call = createCheckTagged(instructions, it, ptr, M, shouldTag);
+            Value *casted = CreateIntToPtr(call, t, M->getContext(), instructions, it);
+            toReplace.push_back(Replace(&l, casted));
             doneSomething = true;
           }
         }
+      }
+      for(std::vector<Replace>::iterator it = toReplace.begin(); it != toReplace.end(); it++) {
+        Replace r = *it;
+        errs() << "Replacing instruction " << r.From << " with " << r.To << "\n";
+        // FIXME can we use the original iterator here? Didn't seem to work with remove?
+        BasicBlock::iterator ii(r.From);
+        ReplaceInstWithValue(instructions, ii, r.To);
       }
       for(std::vector<Instruction*>::iterator it = toDelete.begin(); it != toDelete.end(); it++) {
         errs() << "Deleting instruction " << *it << "\n";
@@ -675,7 +693,7 @@ namespace {
     }
 
     /* Call __llvm_riscv_check_tagged before the current instruction */
-    void createCheckTagged(BasicBlock::InstListType& instructions, 
+    CallInst *createCheckTagged(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
                          IRBuilderBase::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
@@ -685,6 +703,7 @@ namespace {
       Value *Ops[] = { Ptr, getInt64(tag, Context) };
       CallInst *CI = CallInst::Create(getFunctionCheckTagged(), Ops, "");
       instructions.insert(it, CI);
+      return CI;
     }
     
     Value *getCastedInt8PtrValue(LLVMContext &Context,
@@ -708,6 +727,14 @@ namespace {
                          BasicBlock::InstListType::iterator it,
                          const Twine &Name = "") {
       return CreateCast(Instruction::PtrToInt, V, DestTy, instructions, it, Name);
+    }
+
+    Value *CreateIntToPtr(Value *V, Type *DestTy,
+                         LLVMContext &Context,
+                         BasicBlock::InstListType& instructions, 
+                         BasicBlock::InstListType::iterator it,
+                         const Twine &Name = "") {
+      return CreateCast(Instruction::IntToPtr, V, DestTy, instructions, it, Name);
     }
 
     Value *CreateCast(Instruction::CastOps Op, Value *V, Type *DestTy,
