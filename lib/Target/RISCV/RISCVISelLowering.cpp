@@ -1707,34 +1707,23 @@ SDValue RISCVTargetLowering::lowerIntriniscLoadTagged(SDValue Op,
   SDValue ptr = Op.getOperand(OpNo);
   EVT type = ptr.getValueType();
   errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
-  assert(type == MVT::iPTR);
   SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
   // LDCT
-  EVT Types[] = { MVT::i64, MVT::Other };
-  SDValue Args[] = { ptr, Zero, Chain };
-  SDNode *LDCT = DAG.getMachineNode(RISCV::LDCT, DL, Types, Args);
+  SDValue Args[] = { ptr, Zero };
+  SDNode *LDCT = DAG.getMachineNode(RISCV::LDCT, DL, MVT::i64, Args);
   SDValue LDCTReg(LDCT, 0);
-  SDValue LDCTChain(LDCT, 1);
   assert(LDCTReg.getValueType() == MVT::i64);
-  assert(LDCTChain.getValueType() == MVT::Other);
   // RDT
-  SDNode *RDT = DAG.getMachineNode(RISCV::RDT, DL, MVT::i64, MVT::Other, LDCTReg,
-                                   LDCTChain);
+  SDNode *RDT = DAG.getMachineNode(RISCV::RDT, DL, MVT::i64, LDCTReg);
   SDValue TagReg(RDT, 0);
-  SDValue RDTChain(RDT, 1);
   assert(TagReg.getValueType() == MVT::i64);
-  assert(RDTChain.getValueType() == MVT::Other);
-  // WRT to prevent spurious propagation.
-  SDNode *WRT = DAG.getMachineNode(RISCV::WRT, DL, MVT::i64, MVT::Other, LDCTReg,
-                                   Zero, LDCTChain);
+  // WRT to prevent spurious propagation. FIXME remove spurious WRT's later with a peephole pass.
+  SDNode *WRT = DAG.getMachineNode(RISCV::WRT, DL, MVT::i64, LDCTReg, Zero);
   SDValue DataReg(WRT, 0);
-  SDValue WRTChain(RDT, 1);
+  assert(TagReg.getValueType() == MVT::i64);
 
-  // Merge the chains.  
-  SDValue Chains[] = { RDTChain, WRTChain };
-  SDValue MergeChain = DAG.getNode(ISD::TokenFactor, DL, MVT::Other, &Chains[0], 2);
   // Now how do we return a structure?
-  SDValue Vals[] = { MergeChain, DataReg, TagReg };
+  SDValue Vals[] = { Chain, DataReg, TagReg };
   SDValue MergeResults = DAG.getMergeValues(Vals, 3, DL);
   return MergeResults;
 }
