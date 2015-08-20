@@ -553,18 +553,10 @@ namespace {
       return added;
     }
     
-    struct Replace {
-      Instruction *From;
-      Value *To;
-      Replace(Instruction *From, Value *To) : From(From), To(To) {};
-    };
-
     bool runOnBasicBlock(BasicBlock &BB) {
       Module *M = BB.getParent()->getParent();
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
-      std::vector<Instruction*> toDelete;
-      std::vector<Replace> toReplace;
       BasicBlock::InstListType& instructions = BB.getInstList();
       for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
@@ -590,9 +582,10 @@ namespace {
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the store: " << shouldTag << "\n";
-            createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, M, shouldTag);
+            CallInst *AugmentedStore = 
+              createStoreAndSetTag(instructions, it, s.getValueOperand(), ptr, M, shouldTag);
             errs() << "Added store and set tag\n";
-            toDelete.push_back(&s);
+            ReplaceInstWithInst(instructions, it, AugmentedStore);
             doneSomething = true;
           }
         } else if(LoadInst::classof(&inst)) {
@@ -618,21 +611,10 @@ namespace {
             errs() << "Should tag the load: " << shouldTag << "\n";
             Value *call = createCheckTagged(instructions, it, ptr, M, shouldTag);
             Value *casted = CreateIntToPtr(call, t, M->getContext(), instructions, it);
-            toReplace.push_back(Replace(&l, casted));
+            ReplaceInstWithValue(instructions, it, casted);
             doneSomething = true;
           }
         }
-      }
-      for(std::vector<Replace>::iterator it = toReplace.begin(); it != toReplace.end(); it++) {
-        Replace r = *it;
-        errs() << "Replacing instruction " << r.From << " with " << r.To << "\n";
-        // FIXME can we use the original iterator here? Didn't seem to work with remove?
-        BasicBlock::iterator ii(r.From);
-        ReplaceInstWithValue(instructions, ii, r.To);
-      }
-      for(std::vector<Instruction*>::iterator it = toDelete.begin(); it != toDelete.end(); it++) {
-        errs() << "Deleting instruction " << *it << "\n";
-        (*it)->eraseFromParent();
       }
       getFunctionCheckTagged();
       return doneSomething;
@@ -676,7 +658,7 @@ namespace {
       instructions.insertAfter(it, CI);
     }
 
-    void createStoreAndSetTag(BasicBlock::InstListType& instructions, 
+    CallInst *createStoreAndSetTag(BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it, Value *DataValue, 
                          Value *Ptr, Module *M, IRBuilderBase::LowRISCMemoryTag tag) {
       assert(isa<PointerType>(Ptr->getType()) &&
@@ -689,7 +671,7 @@ namespace {
       Value *Ops[] = { DataValue, TagValue, Ptr };
       Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_store_tagged);
       CallInst *CI = CallInst::Create(TheFn, Ops, "");
-      instructions.insertAfter(it, CI);
+      return CI;
     }
 
     /* Call __llvm_riscv_check_tagged before the current instruction */
