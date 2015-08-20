@@ -553,11 +553,20 @@ namespace {
       }
       return added;
     }
+
+    struct TagLoad {
+      LoadInst *Load;
+      IRBuilderBase::LowRISCMemoryTag ExpectedTagType;
+      Type *TargetType;
+      TagLoad(LoadInst *L, IRBuilderBase::LowRISCMemoryTag Tag, Type *Type) 
+        : Load(L), ExpectedTagType(Tag), TargetType(Type) {};
+    };
     
     bool runOnBasicBlock(BasicBlock &BB) {
       Module *M = BB.getParent()->getParent();
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
+      std::vector<TagLoad> loadsToReplace;
       BasicBlock::InstListType& instructions = BB.getInstList();
       for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
@@ -610,12 +619,23 @@ namespace {
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
-            Value *call = createCheckTagged(instructions, it, ptr, M, shouldTag);
-            Value *casted = CreateIntToPtr(call, t, M->getContext(), instructions, it);
-            ReplaceInstWithValue(instructions, it, casted);
+            loadsToReplace.push_back(TagLoad(&l, shouldTag, t));
             doneSomething = true;
           }
         }
+      }
+      for(std::vector<TagLoad>::iterator it = loadsToReplace.begin(); 
+          it != loadsToReplace.end(); it++) {
+        TagLoad tl = *it;
+        LoadInst &l = *(tl.Load);
+        IRBuilderBase::LowRISCMemoryTag shouldTag = tl.ExpectedTagType;
+        Type *t = tl.TargetType;
+        errs() << "Tagging load: " << l << " with tag " << shouldTag << " for type " << *t << "\n";
+        Value *ptr = l.getPointerOperand();
+        BasicBlock::InstListType::iterator ii(&l);
+        Value *call = createCheckTagged(instructions, ii, ptr, M, shouldTag);
+        Value *casted = CreateIntToPtr(call, t, M->getContext(), instructions, ii);
+        ReplaceInstWithValue(instructions, ii, casted);
       }
       getFunctionCheckTagged();
       return doneSomething;
