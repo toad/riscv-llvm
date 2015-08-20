@@ -23,6 +23,7 @@ def LTAG : InstLoad<"ltag", 0b1010111, 0b000, int_riscv_ltag, GR64, mem64>, Requ
 // spilling would be difficult.
 
 // Atomically load, check tag and propagate tag into register.
+let mayLoad = 1 in
 def LDCT : InstLoadNONE<"ldct", 0b1010111, 0b100, GR64, mem64>, Requires<[IsRV64, HasTM]>;
 
 // Atomically check existing tag, store both value and tag from register.
@@ -65,6 +66,7 @@ def RDT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src),
   let Inst{6 - 0} = 7; // Will change!
 }
 
+let mayStore = 1 in
 def STORE_TAGGED : Pseudo<(outs), (ins GR64:$val, GR64:$tag, GR64:$addr), 
                           [(int_riscv_store_tagged GR64:$val, GR64:$tag, GR64:$addr)]>;
 
