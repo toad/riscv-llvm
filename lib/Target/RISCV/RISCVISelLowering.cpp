@@ -1690,7 +1690,7 @@ lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const {
   return FrameAddr;
 }
 
-SDValue RISCVTargetLowering::lowerIntriniscLoadTagged(SDValue Op,
+SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
                                               SelectionDAG &DAG) const {
   errs() << "Lowering an int_riscv_load_tagged\n";
   DebugLoc DL = Op.getDebugLoc();
@@ -1733,7 +1733,7 @@ SDValue RISCVTargetLowering::lowerINTRINSIC_W_CHAIN(SDValue Op,
                                               SelectionDAG &DAG) const {
   switch (cast<ConstantSDNode>(Op->getOperand(1))->getZExtValue()) {
   case Intrinsic::riscv_load_tagged:
-    return lowerIntriniscLoadTagged(Op, DAG);
+    return lowerIntrinsicLoadTagged(Op, DAG);
   default:
     return SDValue(); // Not one of ours.
   }

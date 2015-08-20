@@ -290,7 +290,7 @@ private:
   SDValue lowerSTACKRESTORE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerINTRINSIC_W_CHAIN(SDValue Op, SelectionDAG &DAG) const;
-  SDValue lowerIntriniscLoadTagged(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerIntrinsicLoadTagged(SDValue Op, SelectionDAG &DAG) const;
 
   // Implement EmitInstrWithCustomInserter for individual operation types.
   MachineBasicBlock *emitSelectCC(MachineInstr *MI,
