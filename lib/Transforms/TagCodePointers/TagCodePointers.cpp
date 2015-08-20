@@ -460,6 +460,7 @@ namespace {
                                              false);
       f = Function::Create(type, GlobalValue::LinkOnceAnyLinkage, // Allow overriding!
                            "__llvm_riscv_check_tagged_failure", &M);
+      f -> addFnAttr(Attribute::NoReturn);
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
       builder.CreateTrap();
