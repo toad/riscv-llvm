@@ -526,11 +526,24 @@ RISCVInstrInfo::tagStackSlot(MachineBasicBlock &MBB,
 
 bool
 RISCVInstrInfo::expandPostRAPseudo(MachineBasicBlock::iterator MI) const {
+  MachineBasicBlock &MBB = *MI->getParent();
   switch (MI->getOpcode()) {
-
+  case RISCV::STORE_TAGGED:
+    expandStoreTagged(MBB, MI);
+    MBB.erase(MI);
+    return true;
   default:
     return false;
   }
+}
+
+void
+RISCVInstrInfo::expandStoreTagged(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const {
+  unsigned ValReg = MI->getOperand(0).getReg();
+  unsigned TagReg = MI->getOperand(1).getReg();
+  unsigned AddrReg = MI->getOperand(2).getReg();
+  BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::WRT)).addReg(ValReg).addReg(ValReg).addReg(TagReg);
+  BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::SDCT)).addReg(ValReg).addReg(AddrReg).addImm(0); // FIXME support a real immediate.
 }
 
 bool RISCVInstrInfo::

@@ -65,11 +65,6 @@ def RDT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src),
   let Inst{6 - 0} = 7; // Will change!
 }
 
-// FIXME These are not really atomic, register allocation spills could break them completely.
-// FIXME Replace with pseudo-instructions.
-
-// Write a tagged value to memory
-def : Pat<(int_riscv_store_tagged GR64Bit:$val, GR64Bit:$tag, GR64Bit:$addr), 
-          (SDCT (WRT GR64Bit:$val, GR64Bit:$tag), GR64Bit:$addr, 0)>;
-
+def STORE_TAGGED : Pseudo<(outs), (ins GR64:$val, GR64:$tag, GR64:$addr), 
+                          [(int_riscv_store_tagged GR64:$val, GR64:$tag, GR64:$addr)]>;
 
