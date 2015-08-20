@@ -1707,23 +1707,11 @@ SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
   SDValue ptr = Op.getOperand(OpNo);
   EVT type = ptr.getValueType();
   errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
-  SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-  // LDCT
-  SDValue Args[] = { ptr, Zero };
-  SDNode *LDCT = DAG.getMachineNode(RISCV::LDCT, DL, MVT::i64, Args);
-  SDValue LDCTReg(LDCT, 0);
-  assert(LDCTReg.getValueType() == MVT::i64);
-  // RDT
-  SDNode *RDT = DAG.getMachineNode(RISCV::RDT, DL, MVT::i64, LDCTReg);
-  SDValue TagReg(RDT, 0);
-  assert(TagReg.getValueType() == MVT::i64);
-  // WRT to prevent spurious propagation.
-  SDValue ZeroReg = DAG.getCopyFromReg(DAG.getEntryNode(), DL, RISCV::zero_64, MVT::i64);
-  SDNode *WRT = DAG.getMachineNode(RISCV::WRT, DL, MVT::i64, LDCTReg, ZeroReg);
-  SDValue DataReg(WRT, 0);
-  assert(TagReg.getValueType() == MVT::i64);
-
-  // Now how do we return a structure?
+  // Generate the MachineNode.
+  SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
+  // Append the chain.
+  SDValue DataReg(LoadTagged, 0);
+  SDValue TagReg(LoadTagged, 1);
   SDValue Vals[] = { DataReg, TagReg, Chain };
   SDValue MergeResults = DAG.getMergeValues(Vals, 3, DL);
   return MergeResults;

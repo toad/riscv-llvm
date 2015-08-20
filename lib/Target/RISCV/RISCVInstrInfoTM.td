@@ -66,7 +66,14 @@ def RDT : InstRISCV<4, (outs GR64:$dst), (ins GR64:$src),
   let Inst{6 - 0} = 7; // Will change!
 }
 
+// Post-RA pseudo's.
+// Spilling tagged values is problematic, so do this post-RA.
+
 let mayStore = 1 in
 def STORE_TAGGED : Pseudo<(outs), (ins GR64:$val, GR64:$tag, GR64:$addr), 
                           [(int_riscv_store_tagged GR64:$val, GR64:$tag, GR64:$addr)]>;
+
+let mayLoad = 1 in
+def LOAD_TAGGED : Pseudo<(outs GR64:$val, GR64:$tag), (ins GR64:$addr),
+                          []>; // Will be emitted by custom lowering code.
 

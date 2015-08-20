@@ -530,11 +530,15 @@ RISCVInstrInfo::expandPostRAPseudo(MachineBasicBlock::iterator MI) const {
   switch (MI->getOpcode()) {
   case RISCV::STORE_TAGGED:
     expandStoreTagged(MBB, MI);
-    MBB.erase(MI);
-    return true;
+    break;
+  case RISCV::LOAD_TAGGED:
+    expandLoadTagged(MBB, MI);
+    break;
   default:
     return false;
   }
+  MBB.erase(MI);
+  return true;
 }
 
 void
@@ -544,6 +548,31 @@ RISCVInstrInfo::expandStoreTagged(MachineBasicBlock &MBB, MachineBasicBlock::ite
   unsigned AddrReg = MI->getOperand(2).getReg();
   BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::WRT)).addReg(ValReg).addReg(ValReg).addReg(TagReg);
   BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::SDCT)).addReg(ValReg).addReg(AddrReg).addImm(0); // FIXME support a real immediate.
+}
+
+void
+RISCVInstrInfo::expandLoadTagged(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const {
+  unsigned ValReg = MI->getOperand(0).getReg();
+  unsigned TagReg = MI->getOperand(1).getReg();
+  unsigned AddrReg = MI->getOperand(2).getReg();
+  assert(TagReg != RISCV::zero_64 || ValReg != RISCV::zero_64);
+  if(TagReg == RISCV::zero_64) {
+    // Don't want the tag. Just do a normal load.
+    BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::LD)).addReg(ValReg).addReg(AddrReg).addImm(0);
+  } else if(ValReg == RISCV::zero_64) {
+    // Don't want the value. Do LTAG.
+    BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::LTAG)).addReg(TagReg).addReg(AddrReg).addImm(0);
+  } else {
+    // Load tagged value.
+    BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::LDCT)).addReg(ValReg).addReg(AddrReg).addImm(0);
+    // Read tag.
+    BuildMI(MBB, MI, MI->getDebugLoc(), get(RISCV::RDT)).addReg(TagReg).addReg(ValReg);
+    // FIXME TAGGED REGISTERS: If we ever support passing tagged values around directly, e.g.
+    // spilling tagged values, we will need a WRT here to clear the tag. In which case we will
+    // need to scan forward to see if the WRT is necessary (it usually isn't e.g. arithmetic
+    // clears the tag). For now it doesn't matter: The only operation that propagates the tag 
+    // to memory is a STORE_TAGGED, which will set it explicitly first.
+  }
 }
 
 bool RISCVInstrInfo::

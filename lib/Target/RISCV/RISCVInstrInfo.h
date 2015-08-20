@@ -140,6 +140,7 @@ public:
                      unsigned *Reg, int64_t Value) const;
 private:
   void expandStoreTagged(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
+  void expandLoadTagged(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const;
 };
 } // end namespace llvm
 
