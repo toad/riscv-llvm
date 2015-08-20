@@ -1707,14 +1707,32 @@ SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
   SDValue ptr = Op.getOperand(OpNo);
   EVT type = ptr.getValueType();
   errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
+  // May actually want LTAG or even LD.
+  bool dataUsed = !SDValue(Op.getNode(),0).use_empty();
+  bool tagUsed = !SDValue(Op.getNode(),1).use_empty();
   // Generate the MachineNode.
-  SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
-  // Append the chain.
-  SDValue DataReg(LoadTagged, 0);
-  SDValue TagReg(LoadTagged, 1);
-  SDValue Vals[] = { DataReg, TagReg, Chain };
-  SDValue MergeResults = DAG.getMergeValues(Vals, 3, DL);
-  return MergeResults;
+  if(dataUsed && tagUsed) {
+    SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
+    // Append the chain.
+    SDValue DataReg(LoadTagged, 0);
+    SDValue TagReg(LoadTagged, 1);
+    SDValue Vals[] = { DataReg, TagReg, Chain };
+    return DAG.getMergeValues(Vals, 3, DL);
+  } else if(tagUsed) {
+    SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
+    SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, ptr, Zero);
+    SDValue TagReg(Load, 0);
+    SDValue Vals[] = { Zero, TagReg, Chain };
+    return DAG.getMergeValues(Vals, 3, DL);
+  } else if(dataUsed) {
+    SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
+    SDNode *Load = DAG.getMachineNode(RISCV::LD, DL, MVT::i64, ptr, Zero);
+    SDValue DataReg(Load, 0);
+    SDValue Vals[] = { DataReg, Zero, Chain };
+    return DAG.getMergeValues(Vals, 3, DL);
+  } else {
+    assert(0 && "Outputs not used, should have been deleted already??");
+  }
 }
 
 SDValue RISCVTargetLowering::lowerINTRINSIC_W_CHAIN(SDValue Op,
