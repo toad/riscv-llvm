@@ -514,14 +514,15 @@ namespace {
           it != blocks.end(); it++) {
         if(runOnBasicBlock(*it, loadsToReplace, M, Context)) added = true;
       }
+      BasicBlock *failBlock = NULL;
       for(std::vector<TagLoad>::iterator it = loadsToReplace.begin(); 
           it != loadsToReplace.end(); it++) {
-        failBlock = tagLoad(*it, F, M, Context);
+        failBlock = tagLoad(*it, F, M, Context, failBlock);
       }
       return added;
     }
     
-    virtual void tagLoad(TagLoad &tl, Function &F, Module *M, LLVMContext &Context) {
+    virtual BasicBlock* tagLoad(TagLoad &tl, Function &F, Module *M, LLVMContext &Context, BasicBlock* FailBlock) {
       LoadInst &l = *(tl.Load);
       IRBuilderBase::LowRISCMemoryTag shouldTag = tl.ExpectedTagType;
       Type *t = tl.TargetType;
@@ -546,11 +547,24 @@ namespace {
       ReplaceInstWithValue(instructions, loadInstIt, casted);
       errs() << "After adding load and check:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
       // Split BB with an if on the comparison.
-      Instruction *FailTerminator = SplitBlockAndInsertIfThen(tagValueWrong, true);
-      errs() << "After splitting on tag != value:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
-      // Now fill in the abort.
-      CallInst::Create(getFunctionTagCheckFailed(), ArrayRef<Value*>(), "", FailTerminator);
-      errs() << "After adding failure clause:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+      if(!FailBlock) {
+        Instruction *FailTerminator = SplitBlockAndInsertIfThen(tagValueWrong, true);
+        errs() << "After splitting on tag != value:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+        // Now fill in the abort.
+        CallInst::Create(getFunctionTagCheckFailed(), ArrayRef<Value*>(), "", FailTerminator);
+        errs() << "After adding failure clause:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+        return FailTerminator->getParent();
+      } else {
+        // Use the existing failure BB.
+        Instruction *SplitBefore = tagValueWrong->getNextNode();
+        BasicBlock *Head = SplitBefore->getParent();
+        BasicBlock *Tail = Head->splitBasicBlock(SplitBefore);
+        TerminatorInst *HeadOldTerm = Head->getTerminator();
+        BranchInst *HeadNewTerm = 
+          BranchInst::Create(/*ifTrue*/FailBlock, /*ifFalse*/Tail, tagValueWrong);
+        ReplaceInstWithInst(HeadOldTerm, HeadNewTerm);
+        return FailBlock;
+      }
     }
 
     bool runOnBasicBlock(BasicBlock &BB, std::vector<TagLoad>& loadsToReplace, Module *M, LLVMContext &Context) {
