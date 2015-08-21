@@ -177,13 +177,13 @@ namespace {
     static char ID; // Pass identification, replacement for typeid
     TagCodePointersBase() : ModulePass(ID) {}
 
-    Function* FunctionCheckTagged = NULL;
+    Function* FunctionTagCheckFailed = NULL;
 
     /* Adds __llvm_riscv_check_tagged */
     virtual bool runOnModule(Module &M) {
       LLVMContext &Context = M.getContext();
       addSetupCSRs(M, Context);
-      addCheckTagged(M, Context);
+      addCheckTaggedFailed(M, Context);
       tagGlobals(M, Context);
       return true;
     }
@@ -450,10 +450,11 @@ namespace {
       return false;
     }
     
-    Function* addCheckTaggedFailed(Module &M, LLVMContext &Context) {
+    bool addCheckTaggedFailed(Module &M, LLVMContext &Context) {
       AttributeSet fnAttributes;
       Function *f = M.getFunction("__llvm_riscv_check_tagged_failure");
       if(f) {
+        FunctionTagCheckFailed = f;
         return f;
       }
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context),
@@ -465,61 +466,12 @@ namespace {
       IRBuilder<> builder(entry);
       builder.CreateTrap();
       builder.CreateRetVoid(); // FIXME Needs a terminal?
-      return f;
-    }
-
-    bool addCheckTagged(Module &M, LLVMContext &Context) {
-      // FIXME Return a value, replace the original load -> atomicity.
-
-      AttributeSet fnAttributes;
-      Function *f = M.getFunction("__llvm_riscv_check_tagged");
-      if(f) {
-        FunctionCheckTagged = f;
-        return false;
-      }
-      Function *fail = addCheckTaggedFailed(M, Context);
-      Type *params[] = { PointerType::getUnqual(IntegerType::get(Context, 8)), 
-                       IntegerType::get(Context, 64) };
-      FunctionType *type = FunctionType::get(IntegerType::get(Context, 64), params,
-                                             false);
-      f = Function::Create(type, GlobalValue::LinkOnceODRLinkage,
-                           "__llvm_riscv_check_tagged", &M);
-      Function::arg_iterator args = f->arg_begin();
-      Value *ptr = args++;
-      Value *tagval = args++;
-      BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
-      BasicBlock* onTagged = BasicBlock::Create(Context, "entry", f);
-      BasicBlock* onNotTagged = BasicBlock::Create(Context, "entry", f);
-      IRBuilder<> builder(entry);
-      
-      Value *loadWithTag = builder.CreateRISCVLoadTagAndValue(ptr);
-      errs() << "Return type of load with tag is " << *(loadWithTag->getType()) << "\n";
-      assert(isa<StructType>(loadWithTag->getType()));
-      Value *tag = builder.CreateExtractValue(loadWithTag, 1);
-      Value *ret = builder.CreateExtractValue(loadWithTag, 0);
-      errs() << "Got tag type " << *tag << "\n";
-      assert(isa<IntegerType>(tag->getType()));
-
-      Value *ltagEqualsOne = builder.CreateICmpEQ(tag, tagval);
-      builder.CreateCondBr(ltagEqualsOne, onTagged, onNotTagged);
-      builder.SetInsertPoint(onTagged);
-      builder.CreateRet(ret);
-      builder.SetInsertPoint(onNotTagged);
-
-      builder.CreateCall(fail);
-      builder.CreateRet(getInt64(0, Context)); // Won't be called
-      // FIXME add argument attribute NonNull, Dereferenceable to pointer.
-      f -> addFnAttr(Attribute::AlwaysInline);
-      f -> addFnAttr(Attribute::NoCapture);
-      f -> addFnAttr(Attribute::ReadOnly);
-
-      FunctionCheckTagged = f;
-      errs() << "TagCodePointersBase added function\n";
+      FunctionTagCheckFailed = f;
       return true;
     }
-    
-    Function* getFunctionCheckTagged() {
-      return FunctionCheckTagged;
+
+    Function* getFunctionTagCheckFailed() {
+      return FunctionTagCheckFailed;
     }
 
   };
@@ -529,7 +481,7 @@ namespace {
 
   struct TagCodePointers : public FunctionPass {
     
-    Function *FunctionCheckTagged = NULL;
+    Function *FunctionTagCheckFailed = NULL;
 
     ConstantFolder Folder; // FIXME Remove when use IRBuilder for more.
 
@@ -540,20 +492,6 @@ namespace {
       Info.addRequired<TagCodePointersBase>();
     }
 
-    virtual bool runOnFunction(Function &F) {
-      StringRef name = F.getName();
-      errs() << "Processing " << name << "\n";
-      if(F.getName() == "__llvm_riscv_init" || 
-         F.getName() == "__llvm_riscv_check_tagged") return false;
-      bool added = false;
-      Function::BasicBlockListType& blocks = F.getBasicBlockList();
-      for(Function::BasicBlockListType::iterator it = blocks.begin(); 
-          it != blocks.end(); it++) {
-        if(runOnBasicBlock(*it)) added = true;
-      }
-      return added;
-    }
-
     struct TagLoad {
       LoadInst *Load;
       IRBuilderBase::LowRISCMemoryTag ExpectedTagType;
@@ -562,11 +500,62 @@ namespace {
         : Load(L), ExpectedTagType(Tag), TargetType(Type) {};
     };
     
-    bool runOnBasicBlock(BasicBlock &BB) {
-      Module *M = BB.getParent()->getParent();
+    virtual bool runOnFunction(Function &F) {
+      StringRef name = F.getName();
+      errs() << "Processing " << name << "\n";
+      if(F.getName() == "__llvm_riscv_init" || 
+         F.getName() == "__llvm_riscv_check_tagged") return false;
+      bool added = false;
+      Module *M = F.getParent();
+      LLVMContext &Context = M->getContext();
+      Function::BasicBlockListType& blocks = F.getBasicBlockList();
+      std::vector<TagLoad> loadsToReplace;
+      for(Function::BasicBlockListType::iterator it = blocks.begin(); 
+          it != blocks.end(); it++) {
+        if(runOnBasicBlock(*it, loadsToReplace, M, Context)) added = true;
+      }
+      for(std::vector<TagLoad>::iterator it = loadsToReplace.begin(); 
+          it != loadsToReplace.end(); it++) {
+        failBlock = tagLoad(*it, F, M, Context);
+      }
+      return added;
+    }
+    
+    virtual void tagLoad(TagLoad &tl, Function &F, Module *M, LLVMContext &Context) {
+      LoadInst &l = *(tl.Load);
+      IRBuilderBase::LowRISCMemoryTag shouldTag = tl.ExpectedTagType;
+      Type *t = tl.TargetType;
+      errs() << "Tagging load: " << l << " with tag " << shouldTag << " for type " << *t << "\n";
+      Value *ptr = l.getPointerOperand();
+      BasicBlock::InstListType::iterator ii(&l);
+      BasicBlock::InstListType &instructions = l.getParent()->getInstList();
+      Value *TheFn = Intrinsic::getDeclaration(M, Intrinsic::riscv_load_tagged);
+      Value *Ptr = getCastedInt8PtrValue(Context, instructions, ii, ptr); // FIXME consider int64 ptr
+      Value *Ops[] = { Ptr };
+      CallInst *loadWithTag = CallInst::Create(TheFn, Ops, "", &l);
+      errs() << "Return type of load with tag is " << *(loadWithTag->getType()) << "\n";
+      assert(isa<StructType>(loadWithTag->getType()));
+      unsigned arr1[] = { 1 };
+      Instruction *tag = ExtractValueInst::Create(loadWithTag, arr1, "", &l);
+      unsigned arr0[] = { 0 };
+      Instruction *ret = ExtractValueInst::Create(loadWithTag, arr0, "", &l);
+      Instruction *tagValueWrong = new ICmpInst(&l, ICmpInst::ICMP_NE, tag, getInt64(shouldTag, Context));
+      // Insert comparison.
+      Value *casted = CreateIntToPtr(ret, t, M->getContext(), instructions, ii);
+      BasicBlock::InstListType::iterator loadInstIt(&l);
+      ReplaceInstWithValue(instructions, loadInstIt, casted);
+      errs() << "After adding load and check:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+      // Split BB with an if on the comparison.
+      Instruction *FailTerminator = SplitBlockAndInsertIfThen(tagValueWrong, true);
+      errs() << "After splitting on tag != value:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+      // Now fill in the abort.
+      CallInst::Create(getFunctionTagCheckFailed(), ArrayRef<Value*>(), "", FailTerminator);
+      errs() << "After adding failure clause:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+    }
+
+    bool runOnBasicBlock(BasicBlock &BB, std::vector<TagLoad>& loadsToReplace, Module *M, LLVMContext &Context) {
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
-      std::vector<TagLoad> loadsToReplace;
       BasicBlock::InstListType& instructions = BB.getInstList();
       for(BasicBlock::InstListType::iterator it = instructions.begin(); 
           it != BB.end(); it++) {
@@ -624,20 +613,6 @@ namespace {
           }
         }
       }
-      for(std::vector<TagLoad>::iterator it = loadsToReplace.begin(); 
-          it != loadsToReplace.end(); it++) {
-        TagLoad tl = *it;
-        LoadInst &l = *(tl.Load);
-        IRBuilderBase::LowRISCMemoryTag shouldTag = tl.ExpectedTagType;
-        Type *t = tl.TargetType;
-        errs() << "Tagging load: " << l << " with tag " << shouldTag << " for type " << *t << "\n";
-        Value *ptr = l.getPointerOperand();
-        BasicBlock::InstListType::iterator ii(&l);
-        Value *call = createCheckTagged(instructions, ii, ptr, M, shouldTag);
-        Value *casted = CreateIntToPtr(call, t, M->getContext(), instructions, ii);
-        ReplaceInstWithValue(instructions, ii, casted);
-      }
-      getFunctionCheckTagged();
       return doneSomething;
     }
 
@@ -695,20 +670,6 @@ namespace {
       return CI;
     }
 
-    /* Call __llvm_riscv_check_tagged before the current instruction */
-    CallInst *createCheckTagged(BasicBlock::InstListType& instructions, 
-                         BasicBlock::InstListType::iterator it, Value *Ptr, Module *M,
-                         IRBuilderBase::LowRISCMemoryTag tag) {
-      assert(isa<PointerType>(Ptr->getType()) &&
-       "stag only applies to pointers.");
-      LLVMContext &Context = M->getContext();
-      Ptr = getCastedInt8PtrValue(Context, instructions, it, Ptr); // FIXME consider int64 ptr
-      Value *Ops[] = { Ptr, getInt64(tag, Context) };
-      CallInst *CI = CallInst::Create(getFunctionCheckTagged(), Ops, "");
-      instructions.insert(it, CI);
-      return CI;
-    }
-    
     Value *getCastedInt8PtrValue(LLVMContext &Context,
                          BasicBlock::InstListType& instructions, 
                          BasicBlock::InstListType::iterator it,
@@ -753,11 +714,11 @@ namespace {
       return Inst;
     }
 
-    Function *getFunctionCheckTagged() {
-      if(FunctionCheckTagged) return FunctionCheckTagged;
-      FunctionCheckTagged = getAnalysis<TagCodePointersBase>().getFunctionCheckTagged();
-      errs() << "TagCodePointers got " << FunctionCheckTagged << "\n";
-      return FunctionCheckTagged;
+    Function *getFunctionTagCheckFailed() {
+      if(FunctionTagCheckFailed) return FunctionTagCheckFailed;
+      FunctionTagCheckFailed = getAnalysis<TagCodePointersBase>().getFunctionTagCheckFailed();
+      errs() << "TagCodePointers got " << FunctionTagCheckFailed << "\n";
+      return FunctionTagCheckFailed;
     }
   };
   
