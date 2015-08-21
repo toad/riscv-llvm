@@ -504,7 +504,7 @@ namespace {
       StringRef name = F.getName();
       errs() << "Processing " << name << "\n";
       if(F.getName() == "__llvm_riscv_init" || 
-         F.getName() == "__llvm_riscv_check_tagged") return false;
+         F.getName() == "__llvm_riscv_check_tagged_failure") return false;
       bool added = false;
       Module *M = F.getParent();
       LLVMContext &Context = M->getContext();
