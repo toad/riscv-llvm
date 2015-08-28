@@ -38,7 +38,7 @@ static const bool TAG_VOID = false;
 /* If true, tag pointers to structures including void* pointers. */
 static const bool TAG_SENSITIVE_VOID = false;
 /* If true, tag all pointers */
-static const bool TAG_POINTER = false;
+static const bool TAG_POINTER = true;
 
 namespace {
 
