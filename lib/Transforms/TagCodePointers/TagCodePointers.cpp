@@ -95,6 +95,7 @@ namespace {
     } else if(TAG_VOID && type->isVoidTy()) {
       return IRBuilderBase::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
     } else {
+      if(TAG_POINTER) return IRBuilderBase::TAG_CLEAN_POINTER;
       return IRBuilderBase::TAG_NORMAL;
     }
   }
