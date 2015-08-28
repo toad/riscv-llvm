@@ -50,7 +50,7 @@ case $1 in
 esac
 rm -f *.s *.ll *.bc
 for main in main*.c fail*.c; do
-	rm -f main*.s
+	rm -f main*.s fail*.s
 	case "$build" in
 	"gcc")
 		echo Building $main with gcc
