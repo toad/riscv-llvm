@@ -49,8 +49,8 @@ case $1 in
 		exit 1
 esac
 rm -f *.s *.ll *.bc
-for main in main*.c fail*.c; do
-	rm -f main*.s fail*.s
+for main in main*.c fail*.c exploit*.c; do
+	rm -f main*.s fail*.s exploit*.s
 	case "$build" in
 	"gcc")
 		echo Building $main with gcc
@@ -68,7 +68,7 @@ for main in main*.c fail*.c; do
 		fi
 		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
 		OPTS="-O2 -scalar-evolution -loop-reduce"
-		if echo "${main}" | grep "^fail-"; then
+		if echo "${main}" | grep "^fail-" || echo "${main}" | grep "^exploit-"; then
 			# Testing undefined behaviour
 			# Behaviour will depend on optimisation level
 			OPTS=""

@@ -15,7 +15,8 @@ do
 		echo "Test $x succeeded with $compiler"
 	done
 	# Don't build failing tests for gcc-no-tags
-	for x in fail-*.c
+	# Exploits. These should call the evil function with GCC, but exit with Clang.
+	for x in exploit-*.c
 	do
 		if ! test "$compiler" == "gcc-no-tags"; then
 			if ! spike pk test-${x}.${compiler}.riscv | grep "Called evil function"
@@ -38,12 +39,26 @@ do
 		fi
 		echo "Test $x succeeded with $compiler - failed as expected"
 	done
+	# Failing tests. These should work with GCC but fail with Clang.
+	for x in fail-*.c
+	do
+		if ! spike pk test-${x}.${compiler}.riscv | grep "Success"; then
+			if ! test "$compiler" == "clang"; then
+				echo "Test with protection turned off did not work: $x with compiler $compiler"
+				echo "This means there is a bug in the test"
+				exit 2
+			else
+				echo "Clang test $x failed as expected"
+			fi
+		fi
+		echo "Test $x succeeded with $compiler - failed as expected"
+	done
 	echo "All tests succeeded for $compiler"
 done
 compiler=gcc-fail-tags
 echo "Testing $compiler"
 	./build.sh $compiler
-	for x in main-*.c fail-*.c
+	for x in main-*.c exploit-*.c
 	do
 		# main-simple.c just checks that tags work, so don't build for gcc-fail-tags
 		if test "$x" == "main-simple.c"; then continue; fi
