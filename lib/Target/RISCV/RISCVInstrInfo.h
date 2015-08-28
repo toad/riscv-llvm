@@ -94,6 +94,11 @@ public:
                         const TargetRegisterClass *RC,
                         const TargetRegisterInfo *TRI) const LLVM_OVERRIDE;
   virtual void
+    storeTaggedRegToStackSlot(MachineBasicBlock &MBB,
+                        MachineBasicBlock::iterator MBBI,
+                        unsigned SrcReg, bool isKill, int FrameIndex,
+                        const TargetRegisterInfo *TRI) const;
+  virtual void
     loadRegFromStackSlot(MachineBasicBlock &MBB,
                          MachineBasicBlock::iterator MBBI,
                          unsigned DestReg, int FrameIdx,

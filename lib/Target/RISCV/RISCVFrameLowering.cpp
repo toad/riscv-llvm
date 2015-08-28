@@ -274,13 +274,17 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
     // Insert the spill to the stack frame.
     bool IsKill = !IsRAAndRetAddrIsTaken;
     const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
-    TII.storeRegToStackSlot(*EntryBlock, MI, Reg, IsKill,
-                            CSI[i].getFrameIdx(), RC, TRI);
     if(tagSpilledRegisters) {
       // We didn't allocate t0. It will be reused, we don't need to kill it.
       // FIXME REVIEW REGISTER USAGE
-      TII.tagStackSlot(*EntryBlock, MI, RISCV::t0_64, false,
-                            CSI[i].getFrameIdx(), RC, TRI);
+      assert(MI != EntryBlock->end());
+      DebugLoc DL = MI->getDebugLoc();
+      BuildMI(*EntryBlock, MI, DL, TII.get(RISCV::WRT), Reg).addReg(Reg).addReg(RISCV::t0_64);
+      TII.storeTaggedRegToStackSlot(*EntryBlock, MI, Reg, IsKill,
+                                    CSI[i].getFrameIdx(), TRI);
+    } else {
+      TII.storeRegToStackSlot(*EntryBlock, MI, Reg, IsKill,
+                              CSI[i].getFrameIdx(), RC, TRI);
     }
     errs() << "Spilling callee-saved register " << Reg << "\n";
   }

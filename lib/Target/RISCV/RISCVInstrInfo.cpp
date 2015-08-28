@@ -497,6 +497,20 @@ RISCVInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
 }
 
 void
+RISCVInstrInfo::storeTaggedRegToStackSlot(MachineBasicBlock &MBB,
+				      MachineBasicBlock::iterator MBBI,
+				      unsigned SrcReg, bool isKill,
+				      int FrameIdx,
+				      const TargetRegisterInfo *TRI) const {
+  DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+
+  // Callers may expect a single instruction, so keep 128-bit moves
+  // together for now and lower them after register allocation.
+  addFrameReference(BuildMI(MBB, MBBI, DL, get(RISCV::SDCT))
+		    .addReg(SrcReg, getKillRegState(isKill)), FrameIdx);
+}
+
+void
 RISCVInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
 				       MachineBasicBlock::iterator MBBI,
 				       unsigned DestReg, int FrameIdx,
