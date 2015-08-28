@@ -96,6 +96,7 @@ namespace {
     } else if(TAG_VOID && tagVoid && isa<IntegerType>(type) && ((IntegerType*)type)->getBitWidth() == 8) {
       return IRBuilderBase::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
     } else {
+      if(TAG_POINTER) return IRBuilderBase::TAG_CLEAN_POINTER;
       return IRBuilderBase::TAG_NORMAL;
     }
   }
