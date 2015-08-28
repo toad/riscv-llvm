@@ -33,7 +33,7 @@ using namespace llvm;
 
 /* If true, tag pointers to structures including function pointers. */
 static const bool TAG_SENSITIVE = true;
-/* If true, tag void*. */
+/* If true, tag void* and char* ("universal pointers"). */
 static const bool TAG_VOID = false;
 /* If true, tag pointers to structures including void* pointers. */
 static const bool TAG_SENSITIVE_VOID = false;
@@ -54,13 +54,14 @@ namespace {
   }
 
   /* Compute the appropriate tag to be written or expected for a pointer type. 
-   * The outer pointer has been removed already. */
-  IRBuilderBase::LowRISCMemoryTag shouldTagPointerType(Type *type) {
+   * The outer pointer has been removed already. Should not be called with tagVoid=true
+   * until after we have checked the preceding bitcast. */
+  IRBuilderBase::LowRISCMemoryTag shouldTagPointerType(Type *type, bool tagVoid) {
     if(isa<FunctionType>(type)) {
       return IRBuilderBase::TAG_CLEAN_FPTR;
     } else if(isa<SequentialType>(type)) {
       IRBuilderBase::LowRISCMemoryTag sub = 
-        shouldTagPointerType(((SequentialType*)type) -> getElementType());
+        shouldTagPointerType(((SequentialType*)type) -> getElementType(), tagVoid);
       switch(sub) {
         case IRBuilderBase::TAG_CLEAN_FPTR:
         case IRBuilderBase::TAG_CLEAN_PFPTR:
@@ -82,7 +83,7 @@ namespace {
       bool foundVoid = false;
       for(StructType::element_iterator it = s -> element_begin();
           it != s -> element_end();it++) {
-        IRBuilderBase::LowRISCMemoryTag sub = shouldTagPointerType(*it);
+        IRBuilderBase::LowRISCMemoryTag sub = shouldTagPointerType(*it, tagVoid);
         if(TAG_SENSITIVE && (sub == IRBuilderBase::TAG_CLEAN_SENSITIVE || 
            sub == IRBuilderBase::TAG_CLEAN_FPTR || 
            sub == IRBuilderBase::TAG_CLEAN_PFPTR))
@@ -92,33 +93,33 @@ namespace {
       }
       if(foundVoid) return IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID;
       return IRBuilderBase::TAG_NORMAL;
-    } else if(TAG_VOID && type->isVoidTy()) {
+    } else if(TAG_VOID && tagVoid && isa<IntegerType>(type) && ((IntegerType*)type)->getBitWidth() == 8) {
       return IRBuilderBase::TAG_CLEAN_VOIDPTR; // Not a pointer yet but it will be.
     } else {
       return IRBuilderBase::TAG_NORMAL;
     }
   }
 
-  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type);
+  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type, bool checkForVoidPointers);
 
   /* Compute the correct type for a bare structure. That is, we are writing 
    * a pointer-sized word directly to a structure, what do we get? A classic 
    * example is setting the vptr. This is NOT the same as writing a pointer to
    * a structure. */
-  IRBuilderBase::LowRISCMemoryTag shouldTagStructType(StructType *type) {
+  IRBuilderBase::LowRISCMemoryTag shouldTagStructType(StructType *type, bool checkForVoidPointers) {
     for(StructType::element_iterator it = type -> element_begin();
         it != type -> element_end();it++) {
       // What's the first element?
       Type *element = *it;
       if(isa<StructType>(element)) {
         // A struct consisting of more structs back-to-back.
-        return shouldTagStructType((StructType*)element);
+        return shouldTagStructType((StructType*)element, checkForVoidPointers);
       } else if(isa<PointerType>(element)) {
         // First element is a pointer.
-        return shouldTagPointerType(stripPointer(element));
+        return shouldTagPointerType(stripPointer(element), checkForVoidPointers);
       } else if(isa<ArrayType>(element)) {
         // Is an array. We are interested in the first element.
-        return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType());
+        return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType(), checkForVoidPointers);
       } else if(element->isVoidTy()) {
         // Placeholder?
         continue;
@@ -136,20 +137,20 @@ namespace {
    * important point here: Writing to a structure means writing to its first
    * element! Same with an array. So e.g. writing to a C++ object with a vptr
    * usually means writing to its vptr. */
-  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type) {
+  IRBuilderBase::LowRISCMemoryTag shouldTagTypeOfWord(Type *type, bool checkForVoidPointers) {
     errs() << "shouldTag (word read/write): " << *type << "\n";
     if(isa<PointerType>(type)) {
       errs() << "Is a pointer type\n";
       // Pointer type. May be sensitive.
-      return shouldTagPointerType(stripPointer((PointerType*)type));
+      return shouldTagPointerType(stripPointer((PointerType*)type), checkForVoidPointers);
     } else if(isa<StructType>(type)) {
       errs() << "Is a structure type\n";
       // Structure. We probably want the first element.
-      return shouldTagStructType((StructType*)type);
+      return shouldTagStructType((StructType*)type, checkForVoidPointers);
     } else if(isa<ArrayType>(type)) {
       errs() << "Is an array type\n";
       // Array. We want the first element.
-      return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType());
+      return shouldTagTypeOfWord(((SequentialType*)type) -> getElementType(), checkForVoidPointers);
     } else {
       // Otherwise it's not of interest.
       return IRBuilderBase::TAG_NORMAL;
@@ -160,7 +161,7 @@ namespace {
    * if it's a pointer. */
   IRBuilderBase::LowRISCMemoryTag shouldTagTypeInitializer(Type *type) {
     Type *innerType = stripPointer(type);
-    if(innerType) return shouldTagPointerType(innerType);
+    if(innerType) return shouldTagPointerType(innerType, true);
     return IRBuilderBase::TAG_NORMAL;
   }
 
@@ -587,7 +588,7 @@ namespace {
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t);
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t, false);
           if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
@@ -613,7 +614,7 @@ namespace {
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t);
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t, false);
           if(shouldTag == IRBuilderBase::TAG_NORMAL && 
              isInt8Pointer(t) && isa<Instruction>(ptr)) {
             errs() << "Hmmm....\n";
@@ -644,7 +645,7 @@ namespace {
         errs() << "\n";
         Type *stripped = stripPointer(type);
         if(stripped)
-          return shouldTagTypeOfWord(stripped);
+          return shouldTagTypeOfWord(stripped, true);
       }
       return IRBuilderBase::TAG_NORMAL;
     }
