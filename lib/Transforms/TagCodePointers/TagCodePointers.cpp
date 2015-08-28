@@ -569,6 +569,36 @@ namespace {
       }
     }
 
+    /** Common idiom in generated IR: Bitcast before store. */
+    IRBuilderBase::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
+      // FIXME could this be outside the current basic block??
+      // FIXME can we tell in advance or do we need a FunctionPass after all???
+      errs() << "Previous instruction: " << *ptr << "\n";
+      if(isa<BitCastInst>(ptr)) {
+        // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
+        // E.g. when setting vptr's.
+        Type *type = ((BitCastInst*)ptr)->getSrcTy();
+        errs() << "Type is really: ";
+        type -> print(errs());
+        errs() << "\n";
+        Type *stripped = stripPointer(type);
+        if(stripped)
+          return shouldTagTypeOfWord(stripped, true);
+      }
+      return IRBuilderBase::TAG_NORMAL;
+    }
+    
+    IRBuilderBase::LowRISCMemoryTag shouldTagLoadOrStore(Type *t, Value *ptr) {
+      if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
+        // Might be hidden behind a bitcast.
+        errs() << "Hmmm....\n";
+        assert(isa<Instruction>(ptr));
+        return shouldTagBitCastInstruction(ptr);
+      } else {
+        return shouldTagTypeOfWord(t, true);
+      }
+    }
+
     bool runOnBasicBlock(BasicBlock &BB, std::vector<TagLoad>& loadsToReplace, Module *M, LLVMContext &Context) {
       bool doneSomething = false;
       errs() << "TagCodePointers running on basic block...\n";
@@ -589,15 +619,7 @@ namespace {
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag;
-          if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
-            // Might be hidden behind a bitcast.
-            errs() << "Hmmm....\n";
-            assert(isa<Instruction>(ptr));
-            shouldTag = shouldTagBitCastInstruction(ptr);
-          } else {
-            shouldTag = shouldTagTypeOfWord(t, true);
-          }
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagLoadOrStore(t, ptr);
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the store: " << shouldTag << "\n";
             CallInst *AugmentedStore = 
@@ -618,16 +640,7 @@ namespace {
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t, false);
-          errs() << "Previous instruction: " << *ptr << "\n";
-          if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
-            // Might be hidden behind a bitcast.
-            errs() << "Hmmm....\n";
-            assert(isa<Instruction>(ptr));
-            shouldTag = shouldTagBitCastInstruction(ptr);
-          } else {
-            shouldTag = shouldTagTypeOfWord(t, true);
-          }
+          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagLoadOrStore(t, ptr);
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
             loadsToReplace.push_back(TagLoad(&l, shouldTag, t));
@@ -638,25 +651,6 @@ namespace {
       return doneSomething;
     }
 
-    /** Common idiom in generated IR: Bitcast before store. */
-    IRBuilderBase::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
-      // FIXME could this be outside the current basic block??
-      // FIXME can we tell in advance or do we need a FunctionPass after all???
-      errs() << "Previous instruction: " << *ptr << "\n";
-      if(isa<BitCastInst>(ptr)) {
-        // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
-        // E.g. when setting vptr's.
-        Type *type = ((BitCastInst*)ptr)->getSrcTy();
-        errs() << "Type is really: ";
-        type -> print(errs());
-        errs() << "\n";
-        Type *stripped = stripPointer(type);
-        if(stripped)
-          return shouldTagTypeOfWord(stripped, true);
-      }
-      return IRBuilderBase::TAG_NORMAL;
-    }
-    
     // FIXME lots of duplication getting function-level-or-higher globals here
     // FIXME duplication with IRBuilder.
     
