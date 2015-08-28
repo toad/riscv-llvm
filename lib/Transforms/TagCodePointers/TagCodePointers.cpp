@@ -589,11 +589,14 @@ namespace {
           assert(t && "parameter must be a pointer.");
           t -> print(errs());
           errs() << "\n";
-          IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t, false);
-          if(shouldTag == IRBuilderBase::TAG_NORMAL && 
-             isInt8Pointer(t) && isa<Instruction>(ptr)) {
+          IRBuilderBase::LowRISCMemoryTag shouldTag;
+          if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
+            // Might be hidden behind a bitcast.
             errs() << "Hmmm....\n";
+            assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
+          } else {
+            shouldTag = shouldTagTypeOfWord(t, true);
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the store: " << shouldTag << "\n";
@@ -616,11 +619,14 @@ namespace {
           t -> print(errs());
           errs() << "\n";
           IRBuilderBase::LowRISCMemoryTag shouldTag = shouldTagTypeOfWord(t, false);
-          if(shouldTag == IRBuilderBase::TAG_NORMAL && 
-             isInt8Pointer(t) && isa<Instruction>(ptr)) {
+          errs() << "Previous instruction: " << *ptr << "\n";
+          if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
+            // Might be hidden behind a bitcast.
             errs() << "Hmmm....\n";
             assert(isa<Instruction>(ptr));
             shouldTag = shouldTagBitCastInstruction(ptr);
+          } else {
+            shouldTag = shouldTagTypeOfWord(t, true);
           }
           if(shouldTag != IRBuilderBase::TAG_NORMAL) {
             errs() << "Should tag the load: " << shouldTag << "\n";
