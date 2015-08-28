@@ -1,3 +1,10 @@
+/* This fails because it uses a swap() *function* to swap two arbitrary 
+ * pointers. This generates warnings and violates aliasing rules.
+ * However it compiles, and it works without code pointer tagging.
+ * With code pointer tagging, it fails at run-time because it writes 
+ * function pointers as void*. We could fix this with checking for 
+ * several different possible tags on a load... */
+
 #include <stdio.h>
 #include <assert.h>
 
@@ -24,7 +31,7 @@ void (**ppf1)() = &pf1;
 void (**ppf2)() = &pf2;
 
 void swap(void** pp1, void** pp2) {
-	void* p1 = *pp1;
+	void *p1 = *pp1;
 	void *p2 = *pp2;
 	*pp1 = p2;
 	*pp2 = p1;
