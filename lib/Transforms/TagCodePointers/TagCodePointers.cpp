@@ -34,17 +34,17 @@ using namespace llvm;
 /* If true, tag pointers to structures including function pointers. */
 static const bool TAG_SENSITIVE = true;
 /* If true, tag void* and char* ("universal pointers"). */
-static const bool TAG_VOID = true;
+static const bool TAG_VOID = false;
 /* If true, tag pointers to structures including void* pointers. */
-static const bool TAG_SENSITIVE_VOID = true;
+static const bool TAG_SENSITIVE_VOID = false;
 /* If true, tag all pointers */
-static const bool TAG_POINTER = true;
+static const bool TAG_POINTER = false;
 /* If true, accept void* when reading a sensitive pointer or an indirect code 
  * pointer, and accept sensitive pointers and indirect code pointers when 
  * reading a void*. Only necessary with code that violates aliasing rules, 
  * e.g. swapping arbitrary pointers via void**. Requires TAG_POINTER, 
  * TAG_VOID and TAG_SENSITIVE_VOID. */
-static const bool EXPENSIVE_VOID_COMPAT_HACK = true;
+static const bool EXPENSIVE_VOID_COMPAT_HACK = false;
 
 namespace {
 

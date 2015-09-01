@@ -1,6 +1,10 @@
+/* Test void* pointers. Only useful if TAG_POINTER and TAG_VOID are enabled
+ * in TagCodePointers.cpp. If so, define TAGGING_POINTERS here. */
+
 #include <stdio.h>
 #include <assert.h>
 
+#ifdef TAGGING_POINTERS
 #ifndef NO_TAGS
 # ifndef __TAGGED_MEMORY__
 #  error Tagged memory must be supported by compiler!
@@ -10,6 +14,7 @@
 #define store_tag __riscv_store_tag
 #define LAZY_TAG __RISCV_TAG_CLEAN_FPTR
 #endif
+#endif
 
 int x = 3;
 void *px = &x;
@@ -17,6 +22,7 @@ int y = 4;
 void *py = &y;
 
 void main() {
+#ifdef TAGGING_POINTERS
 #ifdef FAKE_TAGS
 	store_tag(&px, __RISCV_TAG_CLEAN_POINTER);
 	store_tag(&py, __RISCV_TAG_CLEAN_POINTER);
@@ -28,11 +34,13 @@ void main() {
 	assert(load_tag(&px) == __RISCV_TAG_CLEAN_POINTER);
 	assert(load_tag(&py) == __RISCV_TAG_CLEAN_POINTER);
 #endif
+#endif
 	printf("*px = %d\n", *(int*)px);
 	printf("*py = %d\n", *(int*)py);
 	int *tmp = py;
 	py = px;
 	px = tmp;
+#ifdef TAGGING_POINTERS
 #ifdef FAKE_TAGS
 	assert(load_tag(&px) == 0);
 	assert(load_tag(&py) == 0);
@@ -42,6 +50,7 @@ void main() {
 #ifndef NO_TAGS
 	assert(load_tag(&px) == __RISCV_TAG_CLEAN_VOIDPTR);
 	assert(load_tag(&py) == __RISCV_TAG_CLEAN_VOIDPTR);
+#endif
 #endif
 	assert(*(int*)px == 4);
 	assert(*(int*)py == 3);

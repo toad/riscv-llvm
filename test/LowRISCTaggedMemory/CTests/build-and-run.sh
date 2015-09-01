@@ -64,6 +64,9 @@ echo "Testing $compiler"
 	do
 		# main-simple.c just checks that tags work, so don't build for gcc-fail-tags
 		if test "$x" == "main-simple.c"; then continue; fi
+		# These only make sense if we enable pointer/void* tagging. FIXME.
+		if test "$x" == "main-ordinary-pointer.c"; then continue; fi
+		if test "$x" == "main-void-pointer.c"; then continue; fi
 		if ! spike pk test-${x}.${compiler}.riscv | grep "assertion.*failed"
 		then
 			echo "Test succeeded but should fail: $x"
