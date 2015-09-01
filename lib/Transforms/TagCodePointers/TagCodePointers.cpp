@@ -34,11 +34,17 @@ using namespace llvm;
 /* If true, tag pointers to structures including function pointers. */
 static const bool TAG_SENSITIVE = true;
 /* If true, tag void* and char* ("universal pointers"). */
-static const bool TAG_VOID = false;
+static const bool TAG_VOID = true;
 /* If true, tag pointers to structures including void* pointers. */
-static const bool TAG_SENSITIVE_VOID = false;
+static const bool TAG_SENSITIVE_VOID = true;
 /* If true, tag all pointers */
 static const bool TAG_POINTER = true;
+/* If true, accept void* when reading a sensitive pointer or an indirect code 
+ * pointer, and accept sensitive pointers and indirect code pointers when 
+ * reading a void*. Only necessary with code that violates aliasing rules, 
+ * e.g. swapping arbitrary pointers via void**. Requires TAG_POINTER, 
+ * TAG_VOID and TAG_SENSITIVE_VOID. */
+static const bool EXPENSIVE_VOID_COMPAT_HACK = true;
 
 namespace {
 
@@ -523,12 +529,49 @@ namespace {
       }
       return added;
     }
+
+    std::vector<IRBuilderBase::LowRISCMemoryTag> getOtherAllowedLoadTypes(IRBuilderBase::LowRISCMemoryTag type, bool allowCompatibleValues) {
+      std::vector<IRBuilderBase::LowRISCMemoryTag> types;
+      if(allowCompatibleValues) {
+        switch(type) {
+          // *NOT* TAG_CLEAN_FPTR: Cannot cast a void* to a function pointer.
+          case IRBuilderBase::TAG_CLEAN_PFPTR:
+          case IRBuilderBase::TAG_CLEAN_SENSITIVE:
+          case IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID:
+            // Compatibility hack: Allow void* when expecting any other pointer type.
+            types.push_back(IRBuilderBase::TAG_CLEAN_VOIDPTR);
+            break;
+          case IRBuilderBase::TAG_CLEAN_VOIDPTR:
+            // Compatibility hack: Allow any non-function pointer type when reading void*.
+            types.push_back(IRBuilderBase::TAG_CLEAN_PFPTR);
+            types.push_back(IRBuilderBase::TAG_CLEAN_SENSITIVE);
+            types.push_back(IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID);
+            types.push_back(IRBuilderBase::TAG_CLEAN_POINTER);
+            break;
+          case IRBuilderBase::TAG_CLEAN_POINTER:
+            // Compatibility hack: Allow any non-function pointer type when reading a pointer.
+            // Note that this one isn't associative! We can read a sensitive pointer as a pointer but not the other way.
+            // However void* DOES need to be transitive.
+            types.push_back(IRBuilderBase::TAG_CLEAN_PFPTR);
+            types.push_back(IRBuilderBase::TAG_CLEAN_SENSITIVE);
+            types.push_back(IRBuilderBase::TAG_CLEAN_SENSITIVE_VOID);
+            types.push_back(IRBuilderBase::TAG_CLEAN_VOIDPTR);
+            break;
+          default:
+            // Other types have no aliases.
+            break;
+        }
+      }
+      return types;
+    }
     
     virtual BasicBlock* tagLoad(TagLoad &tl, Function &F, Module *M, LLVMContext &Context, BasicBlock* FailBlock) {
       LoadInst &l = *(tl.Load);
       IRBuilderBase::LowRISCMemoryTag shouldTag = tl.ExpectedTagType;
       Type *t = tl.TargetType;
       errs() << "Tagging load: " << l << " with tag " << shouldTag << " for type " << *t << "\n";
+      std::vector<IRBuilderBase::LowRISCMemoryTag> allowedTypes =
+         getOtherAllowedLoadTypes(shouldTag, EXPENSIVE_VOID_COMPAT_HACK);
       Value *ptr = l.getPointerOperand();
       BasicBlock::InstListType::iterator ii(&l);
       BasicBlock::InstListType &instructions = l.getParent()->getInstList();
@@ -549,54 +592,83 @@ namespace {
       ReplaceInstWithValue(instructions, loadInstIt, casted);
       errs() << "After adding load and check:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
       // Split BB with an if on the comparison.
+      BasicBlock *Head;
+      BasicBlock *Success;
       if(!FailBlock) {
-        Instruction *FailTerminator = SplitBlockAndInsertIfThen(tagValueWrong, true);
+        Instruction *SplitBefore = tagValueWrong->getNextNode();
+        Head = SplitBefore->getParent();
+        Success = Head->splitBasicBlock(SplitBefore);
+        TerminatorInst *HeadOldTerm = Head->getTerminator();
+        FailBlock = BasicBlock::Create(Context, "", &F, Success);
+        BranchInst *Branch =
+          BranchInst::Create(/*ifTrue*/FailBlock, /*ifFalse*/Success, tagValueWrong);
+        ReplaceInstWithInst(HeadOldTerm, Branch);
+        TerminatorInst *FailTerm = FailBlock->getTerminator();
         errs() << "After splitting on tag != value:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
         // Now fill in the abort.
-        CallInst::Create(getFunctionTagCheckFailed(), ArrayRef<Value*>(), "", FailTerminator);
+        FailTerm = new UnreachableInst(Context, FailBlock);
+        CallInst::Create(getFunctionTagCheckFailed(), ArrayRef<Value*>(), "", FailTerm);
         errs() << "After adding failure clause:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
-        return FailTerminator->getParent();
+        Head = tagValueWrong->getParent();
       } else {
         // Use the existing failure BB.
-        Instruction *SplitBefore = tagValueWrong->getNextNode();
-        BasicBlock *Head = SplitBefore->getParent();
-        BasicBlock *Tail = Head->splitBasicBlock(SplitBefore);
-        TerminatorInst *HeadOldTerm = Head->getTerminator();
-        BranchInst *HeadNewTerm = 
-          BranchInst::Create(/*ifTrue*/FailBlock, /*ifFalse*/Tail, tagValueWrong);
-        ReplaceInstWithInst(HeadOldTerm, HeadNewTerm);
-        return FailBlock;
+        Success = Split(tagValueWrong, tagValueWrong, FailBlock, Context);
       }
+      errs() << "After adding first test:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+      for(std::vector<IRBuilderBase::LowRISCMemoryTag>::iterator it = allowedTypes.begin();
+          it != allowedTypes.end(); it++) {
+        // Add a new basic block for each alternative value.
+        // Insert a new comparison before the current one.
+        errs() << "Adding another test for " << *it << "\n";
+        tagValueWrong =
+          new ICmpInst(tagValueWrong, ICmpInst::ICMP_EQ, tag, getInt64(*it, Context));
+        Split(tagValueWrong, tagValueWrong, Success, Context);
+        errs() << "After adding another test:\n" << F << " splitting " << tagValueWrong->getParent()->getName() << "\n";
+      }
+      return FailBlock;
+    }
+
+    // Split a block at SplitAt with a branch based on test.
+    // If the condition is true, go to NotEqualsBlock, else to the tail.
+    // Returns the tail.
+    BasicBlock *Split(Value *test, Instruction *SplitAt, BasicBlock *TrueBlock, LLVMContext &Context) {
+      Instruction *SplitBefore = SplitAt->getNextNode();
+      BasicBlock *Head = SplitBefore->getParent();
+      BasicBlock *Tail = Head->splitBasicBlock(SplitBefore);
+      TerminatorInst *HeadOldTerm = Head->getTerminator();
+      BranchInst *HeadNewTerm =
+        BranchInst::Create(/*ifTrue*/TrueBlock, /*ifFalse*/Tail, test);
+      ReplaceInstWithInst(HeadOldTerm, HeadNewTerm);
+      return Tail;
     }
 
     /** Common idiom in generated IR: Bitcast before store. */
-    IRBuilderBase::LowRISCMemoryTag shouldTagBitCastInstruction(Value *ptr) {
-      // FIXME could this be outside the current basic block??
-      // FIXME can we tell in advance or do we need a FunctionPass after all???
-      errs() << "Previous instruction: " << *ptr << "\n";
-      if(isa<BitCastInst>(ptr)) {
-        // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
-        // E.g. when setting vptr's.
-        Type *type = ((BitCastInst*)ptr)->getSrcTy();
-        errs() << "Type is really: ";
-        type -> print(errs());
-        errs() << "\n";
-        Type *stripped = stripPointer(type);
-        if(stripped)
-          return shouldTagTypeOfWord(stripped, true);
-      }
-      return IRBuilderBase::TAG_NORMAL;
+    IRBuilderBase::LowRISCMemoryTag shouldTagBitCastInstruction(BitCastInst *ptr) {
+      // Common idiom in generated code with TBAA turned off: Bitcast to i8*[*...].
+      // E.g. when setting vptr's.
+      Type *type = ((BitCastInst*)ptr)->getSrcTy();
+      errs() << "Type is really: ";
+      type -> print(errs());
+      errs() << "\n";
+      Type *stripped = stripPointer(type);
+      if(stripped)
+        return shouldTagTypeOfWord(stripped, true);
+      else
+        return IRBuilderBase::TAG_NORMAL;
     }
     
     IRBuilderBase::LowRISCMemoryTag shouldTagLoadOrStore(Type *t, Value *ptr) {
       if(isInt8Pointer(t) && isa<Instruction>(ptr)) {
         // Might be hidden behind a bitcast.
         errs() << "Hmmm....\n";
+        errs() << "Previous instruction: " << *ptr << "\n";
         assert(isa<Instruction>(ptr));
-        return shouldTagBitCastInstruction(ptr);
-      } else {
-        return shouldTagTypeOfWord(t, true);
+        // FIXME could this be outside the current basic block??
+        // FIXME can we tell in advance or do we need a FunctionPass after all???
+        if(isa<BitCastInst>(ptr))
+          return shouldTagBitCastInstruction((BitCastInst*)ptr);
       }
+      return shouldTagTypeOfWord(t, true);
     }
 
     bool runOnBasicBlock(BasicBlock &BB, std::vector<TagLoad>& loadsToReplace, Module *M, LLVMContext &Context) {
