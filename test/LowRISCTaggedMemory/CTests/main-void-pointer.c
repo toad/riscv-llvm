@@ -22,6 +22,9 @@ void main() {
 	store_tag(&py, __RISCV_TAG_CLEAN_POINTER);
 #endif FAKE_TAGS
 #ifndef NO_TAGS
+	// For static initialization we have to go by the initializers if available, because of
+	// e.g. casts from sensitive pointers to void* in vtable setup.
+	// Hence these are pointers, not void*.
 	assert(load_tag(&px) == __RISCV_TAG_CLEAN_POINTER);
 	assert(load_tag(&py) == __RISCV_TAG_CLEAN_POINTER);
 #endif
