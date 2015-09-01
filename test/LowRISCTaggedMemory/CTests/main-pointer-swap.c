@@ -48,6 +48,10 @@ void main() {
 	val2 = 2;
 	printf("First pointer gives %d\n", *pval);
 	printf("Second pointer gives %d\n", *pval2);
+#ifdef FAKE_TAGS
+	store_tag(&pval, __RISCV_TAG_CLEAN_POINTER);
+	store_tag(&pval2, __RISCV_TAG_CLEAN_POINTER);
+#endif
 #ifndef NO_TAGS
         printf("Tag on first pointer is %d\n", (int) load_tag(&pval));
         printf("Tag on second pointer is %d\n", (int) load_tag(&pval2));
@@ -55,6 +59,12 @@ void main() {
         assert(load_tag(&pval2) == __RISCV_TAG_CLEAN_POINTER);
 #endif
 	swap(&pval, &pval2);
+#ifdef FAKE_TAGS
+	assert(load_tag(&pval) == 0);
+	assert(load_tag(&pval2) == 0);
+	store_tag(&pval, __RISCV_TAG_CLEAN_VOIDPTR);
+	store_tag(&pval2, __RISCV_TAG_CLEAN_VOIDPTR);
+#endif
 	assert(*pval == 2);
 	assert(*pval2 == 1);
 	printf("First pointer gives %d\n", *pval);
@@ -66,10 +76,20 @@ void main() {
         assert(load_tag(&pval2) == __RISCV_TAG_CLEAN_VOIDPTR);
         printf("Tag on first indirect function pointer is %d\n", (int) load_tag(&ppf1));
         printf("Tag on second indirect function pointer is %d\n", (int) load_tag(&ppf2));
+#ifdef FAKE_TAGS
+	store_tag(&ppf1, __RISCV_TAG_CLEAN_PFPTR);
+	store_tag(&ppf2, __RISCV_TAG_CLEAN_PFPTR);
+#endif
         assert(load_tag(&ppf1) == __RISCV_TAG_CLEAN_PFPTR);
         assert(load_tag(&ppf2) == __RISCV_TAG_CLEAN_PFPTR);
 #endif
 	swap(&ppf1, &ppf2);
+#ifdef FAKE_TAGS
+	assert(load_tag(&ppf1) == 0);
+	assert(load_tag(&ppf2) == 0);
+	store_tag(&ppf1, __RISCV_TAG_CLEAN_VOIDPTR);
+	store_tag(&ppf2, __RISCV_TAG_CLEAN_VOIDPTR);
+#endif
 #ifndef NO_TAGS
         assert(load_tag(&ppf1) == __RISCV_TAG_CLEAN_VOIDPTR);
         assert(load_tag(&ppf2) == __RISCV_TAG_CLEAN_VOIDPTR);
