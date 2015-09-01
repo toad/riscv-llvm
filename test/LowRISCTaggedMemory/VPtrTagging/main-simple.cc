@@ -25,9 +25,11 @@ int main() {
 	printf("Constructed something...\n\n");
 	printf("Constructed object at %p\n", (void*)t);
 #ifdef CHECK_TAGS
+	printf("Object vtable tag is %d\n", (int)load_tag((void*)t));
 	assert(load_tag((void*)t) == __RISCV_TAG_CLEAN_PFPTR && "Object vtable pointer is tagged");
 	void *vtable = *((void**) t);
 	printf("Vtable is at %p\n", vtable);
+	printf("Vtable first entry tag is %d\n", (int)load_tag((void*)vtable));
 	assert(load_tag((void*)vtable) == __RISCV_TAG_CLEAN_FPTR && "Object vtable first entry is tagged");
 #endif
 	printf("Calling method on object...\n");
