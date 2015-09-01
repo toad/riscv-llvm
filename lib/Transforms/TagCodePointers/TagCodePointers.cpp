@@ -424,7 +424,7 @@ namespace {
       }
     }
     
-    void processMoreOperands(Constant *init, Value *getter, std::vector<Value*> derefSoFar, LLVMContext &Context, IRBuilder<> builder) {
+    void processMoreOperands(Constant *init, Value *getter, std::vector<Value*> derefSoFar, LLVMContext &Context, IRBuilder<> &builder) {
       if(isa<ConstantArray>(init) || isa<ConstantVector>(init) || isa<ConstantStruct>(init)) {
         std::vector<Value*> deref = derefSoFar;
         // Dereference more levels of nested (but packed!) array/structure...
