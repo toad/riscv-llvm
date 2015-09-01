@@ -49,7 +49,7 @@ case $1 in
 		exit 1
 esac
 rm -f *.s *.ll *.bc
-for main in main*.c fail*.c exploit*.c; do
+for main in $(ls main*.c fail*.c exploit*.c); do
 	rm -f main*.s fail*.s exploit*.s
 	case "$build" in
 	"gcc")

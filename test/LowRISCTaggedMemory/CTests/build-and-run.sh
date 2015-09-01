@@ -40,6 +40,7 @@ do
 		echo "Test $x succeeded with $compiler - failed as expected"
 	done
 	# Failing tests. These should work with GCC but fail with Clang.
+	if ls fail-*.c; then
 	for x in fail-*.c
 	do
 		if ! spike pk test-${x}.${compiler}.riscv | grep "Success"; then
@@ -53,6 +54,7 @@ do
 		fi
 		echo "Test $x succeeded with $compiler - failed as expected"
 	done
+	fi
 	echo "All tests succeeded for $compiler"
 done
 compiler=gcc-fail-tags
