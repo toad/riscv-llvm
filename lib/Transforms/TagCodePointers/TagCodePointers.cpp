@@ -53,6 +53,11 @@ namespace {
     return ConstantInt::get(Type::getInt64Ty(Context), C);
   }
 
+  /// \brief Get a constant 32-bit value.
+  ConstantInt *getInt32(uint32_t C, LLVMContext &Context) {
+    return ConstantInt::get(Type::getInt32Ty(Context), C);
+  }
+
   Type* stripPointer(Type *type) {
     if(isa<PointerType>(type))
       return ((SequentialType*)type) -> getElementType();
@@ -412,8 +417,8 @@ namespace {
           errs() << "Member is not a constant?!\n";
         } else {
           std::vector<Value*> args;
-          args.push_back(getInt64(0, Context)); // Dereference pointer to structure.
-          args.push_back(getInt64(i, Context)); // Choose element.
+          args.push_back(getInt32(0, Context)); // Dereference pointer to structure.
+          args.push_back(getInt32(i, Context)); // Choose element.
           processMoreOperands((Constant*)v, getter, args, Context, builder);
         }
       }
@@ -429,7 +434,7 @@ namespace {
           Constant *c = (Constant*)v;
           if(!checkInitializer(c)) continue;
           errs() << "Parameter is (processing more operands):\n" << *v << "\n";
-          deref.push_back(getInt64(i, Context));
+          deref.push_back(getInt32(i, Context));
           processMoreOperands(c, getter, deref, Context, builder);
         }
       } else {
