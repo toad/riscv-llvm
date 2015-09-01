@@ -1,9 +1,5 @@
-/* This fails because it uses a swap() *function* to swap two arbitrary 
- * pointers. This generates warnings and violates aliasing rules.
- * However it compiles, and it works without code pointer tagging.
- * With code pointer tagging, it fails at run-time because it writes 
- * function pointers as void*. We could fix this with checking for 
- * several different possible tags on a load... */
+/* This generates warnings and violates aliasing rules. It fails with
+ * code pointer tagging unless EXPENSIVE_VOID_COMPAT_HACK is enabled. */
 
 #include <stdio.h>
 #include <assert.h>
