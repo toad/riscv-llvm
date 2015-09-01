@@ -27,7 +27,7 @@ for x in Test SubclassTest; do
 	"clang"|"clang-linux")
 		echo Building ${x}.cc with clang
 		clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S ${x}.cc -emit-llvm -o ${x}.ll -fno-exceptions -DCHECK_TAGS || exit 2
-		opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${x}.ll > ${x}.opt.bc || exit 3
+		opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers ${x}.ll -o ${x}.opt.bc || exit 3
 		llvm-dis ${x}.opt.bc > ${x}.opt.ll
 		llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${x}.opt.bc -o ${x}.opt.s || exit 4
 		;;
@@ -47,7 +47,7 @@ for main in main-*.cc; do
 		"clang"|"clang-linux")
 			echo Building $main with clang
 			if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $main -emit-llvm -o ${main}.ll -fno-exceptions -DCHECK_TAGS; then echo Failed to build $main with $build; break; fi
-			if ! opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers < ${main}.ll > ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
+			if ! opt -load ../../../build/Debug+Asserts/lib/LLVMTagCodePointers.so -tag-code-pointers ${main}.ll -o ${main}.opt.bc ; then echo Failed to optimise $main; break; fi
 		        llvm-dis ${main}.opt.bc > ${main}.opt.ll
 			if ! llc -use-init-array -filetype=asm -march=riscv -mcpu=LowRISC ${main}.opt.bc -o ${main}.opt.s; then echo Failed to convert optimised $main to assembler; break; fi
 			;;
