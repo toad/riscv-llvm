@@ -261,7 +261,10 @@ namespace {
           Constant *initializer = var.getInitializer();
           errs() << "Initializer is " << *initializer << "\n";
           if(!checkInitializer(initializer)) continue;
-          processInitializer(initializer, &var, Context, builder, false);
+          IRBuilderBase::LowRISCMemoryTag tag =
+            processInitializer(initializer, &var, Context, builder);
+          if(tag != IRBuilderBase::TAG_NORMAL)
+            builder.CreateRISCVStoreTag(&var, getInt64(tag, Context));
         } else {
           errs() << "Declared variable: " << var << "\n";
         }
@@ -350,17 +353,8 @@ namespace {
 
     /* Find anything inside the initializer that needs tagging. 
      * Returns a list of pointers to tag. */
-    void processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder, bool addedAlready) {
-      if(!checkInitializer(init)) return;
-      if(!addedAlready && 
-        (shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL)) {
-        errs() << "Adding to initializer because sensitive type: " << getter;
-        errs() << "Initializer is " << *init << "\n";
-        errs() << "Type is " << init->getType() << "\n";
-        builder.CreateRISCVStoreTag(getter,
-              getInt64(shouldTagTypeInitializer(init->getType()), Context));
-        addedAlready = true;
-      }
+    IRBuilderBase::LowRISCMemoryTag processInitializer(Constant *init, Value *getter, LLVMContext &Context, IRBuilder<> &builder) {
+      if(!checkInitializer(init)) return IRBuilderBase::TAG_NORMAL;
       errs() << "Processing:\n" << *init << "\n\n";
       if(init->isZeroValue()) {
         errs() << "Constant is zero/null, ignoring...\n";
@@ -389,7 +383,7 @@ namespace {
           errs() << "Constant is a cast...\n";
           Value *op = (Constant*) (expr->getOperand(0));
           // Cast is irrelevant, we will need to cast at the end anyway.
-          processInitializer((Constant*)op, getter, Context, builder, addedAlready);
+          return processInitializer((Constant*)op, getter, Context, builder);
         } // Else assume it's harmless...
       } else if(isa<UndefValue>(init)) {
         errs() << "Constant is undefined...\n";
@@ -404,6 +398,18 @@ namespace {
       } else {
         errs() << "**** Constant is unrecognised!\n";
         errs() << *init << "\n\n";
+      }
+      if(shouldTagTypeInitializer(init->getType()) != IRBuilderBase::TAG_NORMAL) {
+        errs() << "Adding to initializer because sensitive type: ";
+        getter -> dump();
+        errs() << "\n Initializer is " << *init << ".\n Type is ";
+        init->getType()->dump();
+        errs() << "\n";
+        IRBuilderBase::LowRISCMemoryTag tag = shouldTagTypeInitializer(init->getType());
+        errs() << "Tag is " << tag << "\n";
+        return tag;
+      } else {
+        return IRBuilderBase::TAG_NORMAL;
       }
     }
 
@@ -447,7 +453,11 @@ namespace {
         }
         Value *newGetter = builder.CreateGEP(getter, derefSoFar);
         errs() << "Getter is " << *newGetter << "\n";
-        processInitializer(init, newGetter, Context, builder, false);
+        IRBuilderBase::LowRISCMemoryTag tag =
+          processInitializer(init, newGetter, Context, builder);
+        if(tag != IRBuilderBase::TAG_NORMAL) {
+          builder.CreateRISCVStoreTag(newGetter, getInt64(tag, Context));
+        }
       }
     }
 
