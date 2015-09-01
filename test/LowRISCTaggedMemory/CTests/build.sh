@@ -68,7 +68,7 @@ for main in main*.c fail*.c exploit*.c; do
 		fi
 		if ! clang -O0 -target riscv -mcpu=LowRISC -mriscv=LowRISC $INCLUDES -S $VARIABLES $main -emit-llvm -o ${main}.ll; then echo Failed to build $main with $build; break; fi
 		OPTS="-O2 -scalar-evolution -loop-reduce"
-		if echo "${main}" | grep "^fail-" || echo "${main}" | grep "^exploit-"; then
+		if echo "${main}" | grep "^fail-" || echo "${main}" | grep "^exploit-" || test "${main}" == "main-pointer-swap.c"; then
 			# Testing undefined behaviour
 			# Behaviour will depend on optimisation level
 			OPTS=""
