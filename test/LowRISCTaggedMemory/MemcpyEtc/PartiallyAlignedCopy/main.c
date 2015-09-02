@@ -19,8 +19,12 @@
 #define READ_ONLY __RISCV_TAG_READ_ONLY
 #endif
 
+/* Tag mask. You need to clear bits that affect behaviour, and bits that aren't stored.
+ * Bottom two bits cause traps. */
+#define TAG_MASK (((1 << TAG_WIDTH) - 1) & ~3)
+
 unsigned char getTag(int i) {
-	return (unsigned char)(i << 3);
+	return ((unsigned char)(i << 2)) & TAG_MASK;
 }
 
 void verify(long *aa, long *bb, int length, int words) {
