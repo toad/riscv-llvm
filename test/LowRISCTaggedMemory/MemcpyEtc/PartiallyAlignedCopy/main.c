@@ -19,18 +19,22 @@
 #define READ_ONLY __RISCV_TAG_READ_ONLY
 #endif
 
+unsigned char getTag(int i) {
+	return (unsigned char)(i << 3);
+}
+
 void verify(long *aa, long *bb, int length, int words) {
 	printf("Verifying length %d words %d\n", length, words);
 	int i;
 	for(i=0;i<words;i++) {
 		assert(aa[i] == i);
-		assert(((unsigned char)load_tag(&aa[i])) == ((unsigned char)(i << 3)));
+		assert(((unsigned char)load_tag(&aa[i])) == getTag(i));
 	}
 	if(length % sizeof(long) == 0) {
 		printf("Copied whole words, should have copied tags...\n");
 		for(i=0;i<words;i++) {
 			assert(bb[i] == i);
-			assert(((unsigned char)load_tag(&bb[i])) == ((unsigned char)(i << 3)));
+			assert(((unsigned char)load_tag(&bb[i])) == getTag(i));
 		}
 	} else {
 		printf("Copied bytes, should NOT have copied tags...\n");
@@ -59,7 +63,7 @@ void verifyNoTags(long *aa, long *bb, int length, int words) {
 	int i;
 	for(i=0;i<words;i++) {
 		assert(aa[i] == i);
-		assert(((unsigned char)load_tag(&aa[i])) == ((unsigned char)(i << 3)));
+		assert(((unsigned char)load_tag(&aa[i])) == getTag(i));
 	}
 	if(length % sizeof(long) == 0) {
 		printf("Copied whole words, should NOT have copied tags...\n");
@@ -94,7 +98,7 @@ void reset(long *aa, long *bb, int words) {
 	for(i=0;i<words;i++) {
 		aa[i] = i;
 		bb[i] = 0;
-		store_tag(&aa[i], i << 3);
+		store_tag(&aa[i], getTag(i));
 		store_tag(&bb[i], 0);
 	}
 }
