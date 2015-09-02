@@ -14,12 +14,15 @@
 #define READ_ONLY __RISCV_TAG_READ_ONLY
 #endif
 
+/* Tag mask. You need to clear bits that affect behaviour, and bits that aren't stored. */
+#define TAG_MASK (~7)
+
 void verify(int seed, long *aa, int length) {
 	srand(seed);
 	int i;
 	for(i=0;i<length;i++) {
 		long randomValue = rand();
-		unsigned char randomTag = rand() & ~7;
+		unsigned char randomTag = rand() & TAG_MASK;
 //		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
 		assert(aa[i] == randomValue);
 		assert((unsigned char)load_tag(&aa[i]) == randomTag);
@@ -31,7 +34,7 @@ void verifyNoTags(int seed, long *aa, int length) {
 	int i;
 	for(i=0;i<length;i++) {
 		long randomValue = rand();
-		unsigned char randomTag = rand() & ~7;
+		unsigned char randomTag = rand() & TAG_MASK;
 //		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
 		assert(aa[i] == randomValue);
 		assert((unsigned char)load_tag(&aa[i]) == 0);
@@ -65,7 +68,7 @@ int main(int argc, char **argv) {
 	printf("Setting up...\n");
 	for(i=0;i<LENGTH;i++) {
 		long randomValue = rand();
-		char randomTag = rand() & ~7;
+		char randomTag = rand() & TAG_MASK;
 		aa[i] = randomValue;
 		store_tag(&aa[i], randomTag);
 //		printf("[%d] = %ld, tag %d\n", i, randomValue, randomTag);
