@@ -51,7 +51,7 @@ void clean(long *aa, int length) {
 }
 
 int main(int argc, char **argv) {
-	printf("Doing random tag test with length %d\n", LENGTH);
+	printf("Doing random tag test with length %d tag mask %d\n", LENGTH, TAG_MASK);
 	long *a = malloc(sizeof(long)*(LENGTH+2));
 	long *b = malloc(sizeof(long)*(LENGTH+2));
 	printf("Allocated space\n");
