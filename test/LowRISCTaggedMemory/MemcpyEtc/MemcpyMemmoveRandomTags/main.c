@@ -18,13 +18,21 @@
  * Bottom two bits cause traps. */
 #define TAG_MASK (((1 << TAG_WIDTH) - 1) & ~3)
 
+void dump(long *aa, int length) {
+	int i;
+	for(i=0;i<length;i++) {
+		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
+	}
+}
+
 void verify(int seed, long *aa, int length) {
 	srand(seed);
 	int i;
+//	printf("Verify with tags:\n");
+//	dump(aa, length);
 	for(i=0;i<length;i++) {
 		long randomValue = rand();
 		unsigned char randomTag = rand() & TAG_MASK;
-//		printf("[%d] = %ld, tag %d\n", i, aa[i], (unsigned char)load_tag(&aa[i]));
 		assert(aa[i] == randomValue);
 		assert((unsigned char)load_tag(&aa[i]) == randomTag);
 	}
@@ -86,7 +94,16 @@ int main(int argc, char **argv) {
 	verify(seed, bb, LENGTH);
 	clean(bb, LENGTH);
 	printf("Calling __riscv_memcpy_tagged\n");
+//	printf("aa:\n");
+//	dump(aa, LENGTH);
+//	printf("bb:\n");
+//	dump(bb, LENGTH);
 	__riscv_memcpy_tagged(bb, aa, LENGTH * sizeof(long));
+//	printf("After __riscv_memcpy_tagged:\n");
+//	printf("aa:\n");
+//	dump(aa, LENGTH);
+//	printf("bb:\n");
+//	dump(bb, LENGTH);
 	verify(seed, aa, LENGTH);
 	verify(seed, bb, LENGTH);
 	clean(bb, LENGTH);
