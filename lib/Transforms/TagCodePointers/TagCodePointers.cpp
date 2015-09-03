@@ -530,7 +530,8 @@ namespace {
     virtual bool runOnFunction(Function &F) {
       StringRef name = F.getName();
       errs() << "Processing " << name << "\n";
-      if(F.getName() == INIT_FUNCTION_NAME || 
+      if(F.getName() == INIT_FUNCTION_NAME ||
+         F.getName() == INIT_CSRS_FUNCTION_NAME || 
          F.getName() == FAILURE_FUNCTION_NAME) return false;
       bool added = false;
       Module *M = F.getParent();
