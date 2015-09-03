@@ -46,6 +46,10 @@ static const bool TAG_POINTER = false;
  * TAG_VOID and TAG_SENSITIVE_VOID. */
 static const bool EXPENSIVE_VOID_COMPAT_HACK = false;
 
+#define INIT_CSRS_FUNCTION_NAME "__llvm_riscv_init_tagged_memory_csrs"
+#define INIT_FUNCTION_NAME "__llvm_riscv_init"
+#define FAILURE_FUNCTION_NAME "__llvm_riscv_check_tagged_failure"
+
 namespace {
 
   /// \brief Get a constant 64-bit value.
@@ -213,14 +217,14 @@ namespace {
       // FIXME In any case they should be set once per process, not once per module!
       // Fixing this requires support in the linker or the frontend.
       AttributeSet fnAttributes;
-      Function *f = M.getFunction("__llvm_riscv_init_tagged_memory_csrs");
+      Function *f = M.getFunction(INIT_CSRS_FUNCTION_NAME);
       if(f) {
         return;
       }
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context),
                                              false);
       f = Function::Create(type, GlobalValue::LinkOnceAnyLinkage, // Allow overriding!
-                           "__llvm_riscv_init_tagged_memory_csrs", &M);
+                           INIT_CSRS_FUNCTION_NAME, &M);
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
       Value *TheFn = Intrinsic::getDeclaration(&M, Intrinsic::riscv_set_tm_trap_ld);
@@ -239,7 +243,7 @@ namespace {
       AttributeSet fnAttributes;
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context), false);
       Function *init = Function::Create(type, GlobalValue::PrivateLinkage,
-                           "__llvm_riscv_init", &M);
+                           INIT_FUNCTION_NAME, &M);
       BasicBlock* entry = BasicBlock::Create(Context, "entry", init);
       IRBuilder<> builder(entry);
 
@@ -475,7 +479,7 @@ namespace {
     
     bool addCheckTaggedFailed(Module &M, LLVMContext &Context) {
       AttributeSet fnAttributes;
-      Function *f = M.getFunction("__llvm_riscv_check_tagged_failure");
+      Function *f = M.getFunction(FAILURE_FUNCTION_NAME);
       if(f) {
         FunctionTagCheckFailed = f;
         return f;
@@ -483,7 +487,7 @@ namespace {
       FunctionType *type = FunctionType::get(Type::getVoidTy(Context),
                                              false);
       f = Function::Create(type, GlobalValue::LinkOnceAnyLinkage, // Allow overriding!
-                           "__llvm_riscv_check_tagged_failure", &M);
+                           FAILURE_FUNCTION_NAME, &M);
       f -> addFnAttr(Attribute::NoReturn);
       BasicBlock* entry = BasicBlock::Create(Context, "entry", f);
       IRBuilder<> builder(entry);
@@ -526,8 +530,8 @@ namespace {
     virtual bool runOnFunction(Function &F) {
       StringRef name = F.getName();
       errs() << "Processing " << name << "\n";
-      if(F.getName() == "__llvm_riscv_init" || 
-         F.getName() == "__llvm_riscv_check_tagged_failure") return false;
+      if(F.getName() == INIT_FUNCTION_NAME || 
+         F.getName() == FAILURE_FUNCTION_NAME) return false;
       bool added = false;
       Module *M = F.getParent();
       LLVMContext &Context = M->getContext();
