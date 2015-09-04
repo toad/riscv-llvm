@@ -2870,14 +2870,6 @@ Small essential fixes
 \end_layout
 
 \begin_layout Standard
-Avoid use of t0 in spill protection, may break some calling conventions
- (e.g.
- “compressed prologue”).
- Needs a way to set the tag without using a register, or to use a different
- register.
-\end_layout
-
-\begin_layout Standard
 Make sure the tag-wrong branch is seen as “unlikely”, if still using branches
  in tag checking.
 \end_layout
@@ -3035,6 +3027,10 @@ Consider more peephole passes after instruction set is more final.
 
 \begin_layout Standard
 See also Performance section.
+\end_layout
+
+\begin_layout Standard
+Use WRT with an immediate to optimise.
 \end_layout
 
 \begin_layout Section
