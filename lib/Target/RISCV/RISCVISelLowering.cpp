@@ -1711,50 +1711,44 @@ SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
   bool dataUsed = !SDValue(Op.getNode(),0).use_empty();
   bool tagUsed = !SDValue(Op.getNode(),1).use_empty();
   // Generate the MachineNode.
+  unsigned opcode;
   if(dataUsed && tagUsed) {
-    if(WithChain) {
-      SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, MVT::Other, ptr);
-      // Append the chain.
-      SDValue DataReg(LoadTagged, 0);
-      SDValue TagReg(LoadTagged, 1);
-      SDValue NewChain(LoadTagged, 2);
-      SDValue Vals[] = { DataReg, TagReg, NewChain };
-      return DAG.getMergeValues(Vals, 3, DL);
-    } else {
-      SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
-      SDValue DataReg(LoadTagged, 0);
-      SDValue TagReg(LoadTagged, 1);
-      SDValue Vals[] = { DataReg, TagReg };
-      return DAG.getMergeValues(Vals, 2, DL);
-    }
+    opcode = RISCV::LOAD_TAGGED;
   } else if(tagUsed) {
-    SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-    if(WithChain) {
-      SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, MVT::Other, ptr, Zero);
-      SDValue TagReg(Load, 0);
-      SDValue NewChain(Load, 1);
-      SDValue Vals[] = { Zero, TagReg, NewChain };
-      return DAG.getMergeValues(Vals, 3, DL);
-    } else {
-      SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, ptr, Zero);
-      SDValue TagReg(Load, 0);
-      SDValue Vals[] = { Zero, TagReg };
-      return DAG.getMergeValues(Vals, 2, DL);
-    }
+    opcode = RISCV::LTAG;
   } else if(dataUsed) {
-    SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-    SDNode *Load = DAG.getMachineNode(RISCV::LD, DL, MVT::i64, MVT::Other, ptr, Zero);
-    SDValue DataReg(Load, 0);
-    if(WithChain) {
-      SDValue NewChain(Load, 1);
-      SDValue Vals[] = { DataReg, Zero, NewChain };
-      return DAG.getMergeValues(Vals, 3, DL);
-    } else {
-      SDValue Vals[] = { DataReg, Zero };
-      return DAG.getMergeValues(Vals, 2, DL);
-    }
+    opcode = RISCV::LD;
   } else {
     assert(0 && "Outputs not used, should have been deleted already??");
+  }
+  SmallVector<EVT, 8> VTs;
+  VTs.push_back(MVT::i64);
+  if(dataUsed && tagUsed) {
+    VTs.push_back(MVT::i64);
+  }
+  if(WithChain) {
+    VTs.push_back(MVT::Other);
+  }
+  SDNode *LoadTagged = DAG.getMachineNode(opcode, DL, VTs, ptr);
+  SDValue DataReg, TagReg;
+  int argCount = 0;
+  if(opcode == RISCV::LOAD_TAGGED || opcode == RISCV::LD) {
+    DataReg = SDValue(LoadTagged, argCount++);
+  } else {
+    DataReg = DAG.getTargetConstant(0, MVT::i64);
+  }
+  if(opcode == RISCV::LOAD_TAGGED || opcode == RISCV::LTAG) {
+    TagReg = SDValue(LoadTagged, argCount++);
+  } else {
+    TagReg = DAG.getTargetConstant(0, MVT::i64);
+  }
+  if(WithChain) {
+    SDValue NewChain(LoadTagged, argCount++);
+    SDValue Vals[] = { DataReg, TagReg, NewChain };
+    return DAG.getMergeValues(Vals, 3, DL);
+  } else {
+    SDValue Vals[] = { DataReg, TagReg };
+    return DAG.getMergeValues(Vals, 2, DL);
   }
 }
 
