@@ -3705,8 +3705,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
   for (unsigned i = 0; i != NumMemOps; ++i) {
     EVT VT = MemOps[i];
     unsigned VTSize = VT.getSizeInBits() / 8;
-    SDValue Value, Store, TagValue, TagStore;
-    SDValue& ToPush = CopyTags == WITH_TAGS ? TagStore : Store;
+    SDValue Value, Store, TagValue;
 
     if (VTSize > Size) {
       // Issuing an unaligned load / store pair  that overlaps with the previous
@@ -3774,7 +3773,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
         Ops.push_back(Value);
         Ops.push_back(TagValue);
         Ops.push_back(CopyTo);
-        TagStore = DAG.getNode(ISD::INTRINSIC_VOID, dl,
+        Store = DAG.getNode(ISD::INTRINSIC_VOID, dl,
                          DAG.getVTList(MVT::Other), &Ops[0], Ops.size());
         errs() << "Added int_riscv_store_tagged in memcpy.\n";
       } else {
@@ -3783,7 +3782,7 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
                                   false, Align);
       }
     }
-    OutChains.push_back(ToPush);
+    OutChains.push_back(Store);
     SrcOff += VTSize;
     DstOff += VTSize;
     Size -= VTSize;
