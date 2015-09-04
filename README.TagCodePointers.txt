@@ -1,6 +1,20 @@
 README: Code pointer protection via tagged memory on LowRISC
 ============================================================
 
+URGENT BUGS
+-----------
+
+Tests break:
+$ cd test/LowRISCTaggedMemory/MemcpyEtc/MemcpyMemmoveRandomTags
+$ ./build.sh 8 clang
+...
+
+=> Hangs forever in llc, in RISCVBranchSelector, adding more and more branches.
+I haven't been able to identify the problem.
+
+Introduction
+------------
+
 This branch based on RISCV-LLVM provides:
 - Stack protection: Registers spilled in function prologue e.g. SP, RA are read only.
 - Code pointer protection: Uses tags to guarantee when we read a code pointer it was previously written as one.
