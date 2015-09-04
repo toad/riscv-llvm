@@ -3024,6 +3024,13 @@ See also Performance section.
 Use WRT with an immediate to optimise.
 \end_layout
 
+\begin_layout Standard
+memcpy/memmove should use LDCT; SDCT directly.
+ For glibc/newlib this will need inline assembler.
+ For LLVM builtin mem* (in SelectionDAG), this may require deeper changes
+ because of register spilling issues.
+\end_layout
+
 \begin_layout Subsection
 Cleanup
 \end_layout
