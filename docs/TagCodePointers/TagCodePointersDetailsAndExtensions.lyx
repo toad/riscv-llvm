@@ -76,11 +76,11 @@ Code pointer protection using tagged memory on LowRISC
 Matthew Toseland
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Design decisions
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Original memo
 \end_layout
 
@@ -113,7 +113,7 @@ The current implementation deviates from this on a number of points.
  for example, we want more configurability (see Lucas Sonnabend's work).
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 “Lazy” tags and cleanup
 \end_layout
 
@@ -148,7 +148,7 @@ We still check for the tag when dereferencing a code pointer, so the attacker
  to look up the function pointer.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tagging sensitive pointers
 \end_layout
 
@@ -195,7 +195,7 @@ Tags are implemented at load and store time: Loading a sensitive pointer
  at compile time.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 memmove() and memcpy()
 \end_layout
 
@@ -233,7 +233,7 @@ The compiler can sometimes choose which version to call, based on the size
  Security Enhancements.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 What and where are tags?
 \end_layout
 
@@ -276,7 +276,7 @@ The compiler does not directly use tagged values, they exist only in memory.
  etc, they are purely determined based on the type of the load or store.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tag propagation?
 \end_layout
 
@@ -307,7 +307,7 @@ For control flow protection, tag propagation in registers is not particularly
  possibly while stored as integers!
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tags as types
 \end_layout
 
@@ -352,11 +352,11 @@ target "http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.12.5725&rep=rep
  4 bits.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Implementation details
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 LLVM back-end and Spike
 \end_layout
 
@@ -436,7 +436,7 @@ memcpy()/memmove() are also implemented in the backend, as well as in glibc
  cause a maintenance problem.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tag code pointers pass
 \end_layout
 
@@ -469,7 +469,7 @@ The current code uses separate (lazy) tag values for function pointers,
  (given overflows).
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tagging static code pointers
 \end_layout
 
@@ -493,7 +493,7 @@ A permanent solution might involve a new ELF section type and modifications
  (possibly including instructions).
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Runtime libraries
 \end_layout
 
@@ -518,7 +518,7 @@ The tag-copying and non-tag-copying versions are available as platform-specific
  these are available.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Problems with RISCV-LLVM
 \end_layout
 
@@ -537,7 +537,7 @@ Currently the test scripts run the front-end, optimiser, back-end and GCC
  TODO
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Linux kernel and proxy kernel
 \end_layout
 
@@ -566,7 +566,7 @@ Changes may be needed in future to support loading tagged instructions,
  new ELF sections and mmap() with tags, see the Future Work section.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Spike, opcodes, etc
 \end_layout
 
@@ -577,11 +577,11 @@ This is all implemented on top of Lucas's changes to support tagged registers,
  distribution (tag-code-pointers-tagged-registers-atomic branch) for details.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Security limitations
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Background: Attacks
 \end_layout
 
@@ -712,7 +712,7 @@ target "http://blog.exodusintel.com/2013/11/26/browser-weakest-byte/"
  scanners are used for ROP and COOP, and the latter uses a SAT solver.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 COOP details
 \end_layout
 
@@ -739,7 +739,7 @@ However, if there is an overflow involving placement new, or if the attacker
  to do the COOP attack.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Gadgets and CFI
 \end_layout
 
@@ -804,7 +804,7 @@ There may be corner cases involving code unloading where ROP gadgets can
  Tagging function entry points may be a solution for this case.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Stack protection
 \end_layout
 
@@ -857,7 +857,7 @@ TODO Request competent feedback! CFI etc wouldn't be needed if canaries
 TODO Be sure that we never use dangerous calling conventions!
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Replacing function pointers
 \end_layout
 
@@ -924,7 +924,7 @@ In general, we conclude that with the right bugs an attacker can replace
  call any function that the source takes a pointer to.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Calling arbitrary valid functions
 \end_layout
 
@@ -998,7 +998,7 @@ target "http://www3.cs.stonybrook.edu/~mikepo/papers/devil.ndss15.pdf"
 TODO Best way to find out is to scan real code for them!!
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Pure C++
 \end_layout
 
@@ -1028,7 +1028,7 @@ Another relevant attack is a use-after-free: Find a pointer to a deleted
  
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Exceptions, longjmp, etc
 \end_layout
 
@@ -1051,11 +1051,11 @@ GCC's indirect jump extension involving putting a jump address in a variable
  TODO
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Extensions: Security enhancements
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tagging/marking function entry points (ROP)
 \end_layout
 
@@ -1156,7 +1156,7 @@ This is a slightly more complex approximation to CFI.
  Tagging individual instructions as executable may or may not be useful.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Pure C++/COOP
 \end_layout
 
@@ -1190,7 +1190,7 @@ Directly detecting overlapped objects.
  See below.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 ASLR bypassing / information leak protection
 \end_layout
 
@@ -1214,7 +1214,7 @@ This requires a tag value for an ordinary pointer.
  routinely stores pointers as integers!
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Non-lazy tags
 \end_layout
 
@@ -1255,7 +1255,7 @@ Non-lazy behaviour could also be turned on only for specific objects (e.g.
  an extra tag bit.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Implementation of non-lazy tag operations
 \end_layout
 
@@ -1301,7 +1301,7 @@ Store is more complex: When writing a code pointer, we may be overwriting
  And then we need to write the data with the tag, all atomically.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Non-lazy tags (C++)
 \end_layout
 
@@ -1342,7 +1342,7 @@ It also relies on the correct destructor being called, which is only guaranteed
  is different.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 C++: Overlapped object detection
 \end_layout
 
@@ -1386,7 +1386,7 @@ Since we write the tags for the whole object anyway, we could write type
  we need to set the tags in “new”, not in the actual constructors.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Non-lazy tags (C)
 \end_layout
 
@@ -1401,7 +1401,7 @@ For C code (with custom memory allocation), this is much harder.
  Non-lazy tags would thus be a useful compile time option, but not by default.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Memory safety
 \end_layout
 
@@ -1469,7 +1469,7 @@ LFP allows arbitrary narrowing of pointer bounds, but the narrowed bounds
  This attack might be limited by alignment issues.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Asynchronous verification on minion cores
 \end_layout
 
@@ -1528,7 +1528,7 @@ Schemes using minion cores are not necessarily better than the alternative;
  memory contention.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Maximising use of LFP-like encoding
 \end_layout
 
@@ -1556,7 +1556,7 @@ The direct approach would be to insert padding into structures and objects.
  We could add an __attribute__ to add the appropriate padding to structures.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Explicit storage allocation and non-lazy tags
 \end_layout
 
@@ -1602,7 +1602,7 @@ It may be more practical to store type information for ranges of memory
  the depth of the node in the sub-object tree in the pointer?
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Details
 \end_layout
 
@@ -1650,7 +1650,7 @@ Full mandatory capability support, e.g.
  memory but can't be modified.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 malloc()/free()
 \end_layout
 
@@ -1677,7 +1677,7 @@ We need to write the tags for the whole block being freed/allocated.
  TODO
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 AddressSanitizer etc.
 \end_layout
 
@@ -1697,7 +1697,7 @@ Linear buffer overflows can be prevented by adding read-only “bumpers” betwe
  See the section on memory safety for some more detail and another application.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 General register spill protection
 \end_layout
 
@@ -1745,7 +1745,7 @@ Another implementation detail: This probably needs pseudo-instructions expanded
  Also we should ideally avoid tagging the spilled registers in frame spilling.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Even more tag types?
 \end_layout
 
@@ -1771,7 +1771,7 @@ It might also be beneficial to have a tag type for C++ vtable pointers,
  This may require changes to metadata from the front-end.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tagging ordinary pointers
 \end_layout
 
@@ -1787,7 +1787,7 @@ This will provide less protection to code that stores pointers as integers,
  but unless memory accesses are aliased the code should still work correctly.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Garbage collection
 \end_layout
 
@@ -1824,7 +1824,7 @@ It might be possible to support code using intptr_t with tag propagation,
  but this is problematic with arithmetic on integer values holding pointers.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Further improvements to memmove()/memcpy()
 \end_layout
 
@@ -1861,11 +1861,11 @@ Currently this is implemented in SelectionDAG, so it may need help to get
  accurate type information (perhaps SelectionDAG::getSrcValue()?).
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Suggested tag allocations (TODO no void*)
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 1 bit
 \end_layout
 
@@ -1950,7 +1950,7 @@ Note no vtable protection! Even if we add metadata to the front-end, using
  
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 2 bits (Minimal functionality)
 \end_layout
 
@@ -2071,7 +2071,7 @@ or
 
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 3 bits (Lots of functionality, use cases)
 \end_layout
 
@@ -2369,7 +2369,7 @@ Spilled register, boundary, unallocated space, read watchpoint.
 
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 4 bits (Non-lazy support)
 \end_layout
 
@@ -2399,7 +2399,7 @@ Because the last 3 values are non-lazy, we free up some tag values.
  However, concurrency-related uses don't fit.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Comparison with StackProtector, CPI/CPS/SafeStack, CFI etc.
 \end_layout
 
@@ -2449,11 +2449,11 @@ Code pointer tagging provides better protection than simple CFI schemes
  See the discussions on ROP and gadgets.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Compatibility issues
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Aliasing and the void* type hole
 \end_layout
 
@@ -2473,7 +2473,7 @@ Code which stores sensitive pointers as void* and transparently casts them
  stores pointers as integers.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Strict aliasing rules
 \end_layout
 
@@ -2579,7 +2579,7 @@ In conclusion, code that compiles without warnings with -fstrict-aliasing
  
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 intptr_t etc (“integer hole”)
 \end_layout
 
@@ -2608,7 +2608,7 @@ Propagating a “pointer” tag through registers and ALU operations is likely
  void* or an integer), and cast the result to a sensitive pointer.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 memcpy/memmove
 \end_layout
 
@@ -2628,7 +2628,7 @@ TODO Occasionally the mem* optimisation passes may produce such code.
  This needs to be looked at.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Configurability (TODO)
 \end_layout
 
@@ -2656,7 +2656,7 @@ Compiler options should be added to disable tagging sensitive pointers and
  hole”).
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Binary compatibility (TODO)
 \end_layout
 
@@ -2688,7 +2688,7 @@ Calling third party libraries built without tagging may break in some cases:
  beats simple ROP!) Etc.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Performance limitations
 \end_layout
 
@@ -2779,7 +2779,7 @@ target "http://clang.llvm.org/docs/ControlFlowIntegrity.html"
  try xalancbmc benchmark for code with lots of vcalls) etc.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Bulk access to tags
 \end_layout
 
@@ -2793,7 +2793,7 @@ Several important operations (for extensions) involve accessing tags in
  the whole cache line?)
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Essential future work (TODO's for basic functionality)
 \end_layout
 
@@ -2805,7 +2805,7 @@ Note this is rather low level code TODO's, dependant on the current hardware
  with rule tables.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Remaining (re)design decisions
 \end_layout
 
@@ -2844,7 +2844,7 @@ Number of tag bits.
  
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Third party review
 \end_layout
 
@@ -2865,7 +2865,7 @@ Cost of STAL (lower priority).
  Performance in general.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Bigger fixes
 \end_layout
 
@@ -2898,7 +2898,7 @@ ELF section, loader mods, possibly mmap() changes in the kernel?
 More complexities, see below
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Compatibility and configurability
 \end_layout
 
@@ -2950,7 +2950,7 @@ Do we need to support “appending” linkage in static code pointer tagging?
 See also Compatibility section.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Minor security enhancements (incomplete, see enhancements)
 \end_layout
 
@@ -2997,7 +2997,7 @@ Consider separate tag for vtable pointers (look at metadata).
 See Security Enhancements section for many more possibilities.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Optimisation
 \end_layout
 
@@ -3024,7 +3024,7 @@ See also Performance section.
 Use WRT with an immediate to optimise.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Cleanup
 \end_layout
 
@@ -3099,7 +3099,7 @@ Sanity check initialisation priorities.
 Port to more recent upstream LLVM/RISCV-LLVM (when it is stable enough).
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tagged code segment / mmap / paging
 \end_layout
 
@@ -3131,11 +3131,11 @@ There is a Cambridge Part 2 project proposal for CHERI that appears to include
  instructions extensively.
 \end_layout
 
-\begin_layout Part
+\begin_layout Section
 Appendix 1: Summary of (further) hardware recommendations
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Basic functionality with mostly lazy tags (2 bits)
 \end_layout
 
@@ -3182,7 +3182,7 @@ Current tagged registers code supports this
 \end_layout
 
 \end_deeper
-\begin_layout Section
+\begin_layout Subsection
 Register spill protection
 \end_layout
 
@@ -3218,7 +3218,7 @@ These are both helpful in general but only vital for general register spill
  protection
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 ASLR protection and non-lazy support
 \end_layout
 
@@ -3236,7 +3236,7 @@ E.g.
 \end_layout
 
 \end_deeper
-\begin_layout Section
+\begin_layout Subsection
 Non-lazy support including non-lazy spills
 \end_layout
 
@@ -3294,7 +3294,7 @@ E.g.
 \end_layout
 
 \end_deeper
-\begin_layout Section
+\begin_layout Subsection
 Mixed tag use
 \end_layout
 
@@ -3302,7 +3302,7 @@ Mixed tag use
 Atomically update tag on store with a mask (both with tags and normal stores)
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Tag propagation
 \end_layout
 
@@ -3362,7 +3362,7 @@ Useful for compatibility with perverse code e.g.
 See also mixed tag use.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Instruction tags
 \end_layout
 
@@ -3400,7 +3400,7 @@ Meaning of tags may differ for instructions vs data, and instructions are
 \end_layout
 
 \end_deeper
-\begin_layout Section
+\begin_layout Subsection
 Miscellaneous: Stuff to think about
 \end_layout
 
@@ -3512,7 +3512,7 @@ If writing tags is always similar cost to writing data, then just zero it
 \end_layout
 
 \end_deeper
-\begin_layout Part
+\begin_layout Section
 Appendix 2: Tagged memory and capabilities
 \end_layout
 
