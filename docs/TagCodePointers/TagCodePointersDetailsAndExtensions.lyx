@@ -2878,14 +2878,6 @@ Avoid use of t0 in spill protection, may break some calling conventions
 \end_layout
 
 \begin_layout Standard
-mem*: memcpy(), memmove() should copy tags atomically with the values.
- Important for both security and performance.
- Implemented for newlib and glibc, but not for LLVM/SelectionDAG.
- At present tagged registers will not be correctly spilled, so need to use
- atomic operations.
-\end_layout
-
-\begin_layout Standard
 Make sure the tag-wrong branch is seen as “unlikely”, if still using branches
  in tag checking.
 \end_layout
