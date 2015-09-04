@@ -1712,23 +1712,26 @@ SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
   bool tagUsed = !SDValue(Op.getNode(),1).use_empty();
   // Generate the MachineNode.
   if(dataUsed && tagUsed) {
-    SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
+    SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, MVT::Other, ptr);
     // Append the chain.
     SDValue DataReg(LoadTagged, 0);
     SDValue TagReg(LoadTagged, 1);
-    SDValue Vals[] = { DataReg, TagReg, Chain };
+    SDValue NewChain(LoadTagged, 2);
+    SDValue Vals[] = { DataReg, TagReg, NewChain };
     return DAG.getMergeValues(Vals, 3, DL);
   } else if(tagUsed) {
     SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-    SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, ptr, Zero);
+    SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, MVT::Other, ptr, Zero);
     SDValue TagReg(Load, 0);
-    SDValue Vals[] = { Zero, TagReg, Chain };
+    SDValue NewChain(Load, 1);
+    SDValue Vals[] = { Zero, TagReg, NewChain };
     return DAG.getMergeValues(Vals, 3, DL);
   } else if(dataUsed) {
     SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-    SDNode *Load = DAG.getMachineNode(RISCV::LD, DL, MVT::i64, ptr, Zero);
+    SDNode *Load = DAG.getMachineNode(RISCV::LD, DL, MVT::i64, MVT::Other, ptr, Zero);
     SDValue DataReg(Load, 0);
-    SDValue Vals[] = { DataReg, Zero, Chain };
+    SDValue NewChain(Load, 1);
+    SDValue Vals[] = { DataReg, Zero, NewChain };
     return DAG.getMergeValues(Vals, 3, DL);
   } else {
     assert(0 && "Outputs not used, should have been deleted already??");
