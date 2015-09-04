@@ -1729,18 +1729,23 @@ SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
   if(WithChain) {
     VTs.push_back(MVT::Other);
   }
-  SDNode *LoadTagged = DAG.getMachineNode(opcode, DL, VTs, ptr);
+  SmallVector<SDValue, 8> Ops;
+  Ops.push_back(ptr);
+  SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
+  if(opcode != RISCV::LOAD_TAGGED) // FIXME remove if when LOAD_TAGGED takes an offset.
+    Ops.push_back(Zero);
+  SDNode *LoadTagged = DAG.getMachineNode(opcode, DL, VTs, Ops);
   SDValue DataReg, TagReg;
   int argCount = 0;
   if(opcode == RISCV::LOAD_TAGGED || opcode == RISCV::LD) {
     DataReg = SDValue(LoadTagged, argCount++);
   } else {
-    DataReg = DAG.getTargetConstant(0, MVT::i64);
+    DataReg = Zero;
   }
   if(opcode == RISCV::LOAD_TAGGED || opcode == RISCV::LTAG) {
     TagReg = SDValue(LoadTagged, argCount++);
   } else {
-    TagReg = DAG.getTargetConstant(0, MVT::i64);
+    TagReg = Zero;
   }
   if(WithChain) {
     SDValue NewChain(LoadTagged, argCount++);
