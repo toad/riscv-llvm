@@ -3036,9 +3036,8 @@ Cleanup
 \end_layout
 
 \begin_layout Standard
-General cleanup, e.g.
- TagCodePointers still has lots of code duplication, even duplication of
- string constants! Consistently do or don't use IRBuilder?
+General cleanup, especially in TagCodePointers.
+ Consistently do or don't use IRBuilder?
 \end_layout
 
 \begin_layout Standard
