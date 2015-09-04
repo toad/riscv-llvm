@@ -10,7 +10,9 @@ $ ./build.sh 8 clang
 ...
 
 => Hangs forever in llc, in RISCVBranchSelector, adding more and more branches.
-I haven't been able to identify the problem.
+This appears to originate in commit 53e896f55ed05adc341ee6b78ce5eaf794f70cbd,
+which must trigger some corner-case in the branch selector. Earlier commits
+work fine.
 
 Introduction
 ------------
