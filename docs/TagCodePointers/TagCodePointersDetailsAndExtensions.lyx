@@ -552,7 +552,13 @@ Both the Linux kernel port and the proxy kernel now save tagged registers.
 \begin_layout Standard
 If we support “sticky” tags in future (which aren't cleared by normal writes),
  we will need to change the kernel.
- Also, emulation of unaligned memory accesses may be incorrect.
+ 
+\end_layout
+
+\begin_layout Standard
+Emulation of unaligned memory accesses may be incorrect: The kernel emulates
+ these by fetching the words separately, but the tag checks are disabled
+ in supervisor mode.
 \end_layout
 
 \begin_layout Standard
