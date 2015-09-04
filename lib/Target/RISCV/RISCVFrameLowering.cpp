@@ -254,8 +254,9 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
 
   if(tagSpilledRegisters && CSI.size()) {
     DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
-    // Put the value we want to tag with into t0 (temporary, saved by the caller if necessary).
-    BuildMI(MBB, MI, DL, TII.get(RISCV::ADDIW), RISCV::t0).
+    // Put the value we want to tag with into t3 (temporary, saved by the caller if necessary).
+    // t0 is occasionally used as a link register (compressed prologues).
+    BuildMI(MBB, MI, DL, TII.get(RISCV::ADDIW), RISCV::t3).
       addReg(RISCV::zero).addImm(IRBuilderBase::TAG_READ_ONLY);
   }
 
@@ -275,11 +276,9 @@ spillCalleeSavedRegisters(MachineBasicBlock &MBB,
     bool IsKill = !IsRAAndRetAddrIsTaken;
     const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
     if(tagSpilledRegisters) {
-      // We didn't allocate t0. It will be reused, we don't need to kill it.
-      // FIXME REVIEW REGISTER USAGE
       assert(MI != EntryBlock->end());
       DebugLoc DL = MI->getDebugLoc();
-      BuildMI(*EntryBlock, MI, DL, TII.get(RISCV::WRT), Reg).addReg(Reg).addReg(RISCV::t0_64);
+      BuildMI(*EntryBlock, MI, DL, TII.get(RISCV::WRT), Reg).addReg(Reg).addReg(RISCV::t3_64);
       TII.storeTaggedRegToStackSlot(*EntryBlock, MI, Reg, IsKill,
                                     CSI[i].getFrameIdx(), TRI);
     } else {
