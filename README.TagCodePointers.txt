@@ -12,7 +12,10 @@ $ ./build.sh 8 clang
 => Hangs forever in llc, in RISCVBranchSelector, adding more and more branches.
 This appears to originate in commit 53e896f55ed05adc341ee6b78ce5eaf794f70cbd,
 which must trigger some corner-case in the branch selector. Earlier commits
-work fine.
+work fine. Unfortunately that's the commit that makes memcpy use atomic
+operations - so you can get potentially exploitable race conditions before
+that, plus the older code with separate tag and data load/store is slower...
+This only applies to small memcpy's which LLVM inlines.
 
 Introduction
 ------------
