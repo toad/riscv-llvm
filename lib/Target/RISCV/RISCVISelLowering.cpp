@@ -288,6 +288,7 @@ RISCVTargetLowering::RISCVTargetLowering(RISCVTargetMachine &tm)
 
     // Custom lowering for some intrinsics.
     setOperationAction(ISD::INTRINSIC_W_CHAIN, MVT::Other, Custom);
+    setOperationAction(ISD::INTRINSIC_WO_CHAIN, MVT::Other, Custom);
   }
 
   setOperationAction(ISD::SMUL_LOHI, MVT::i32, Expand);
@@ -1691,48 +1692,67 @@ lowerFRAMEADDR(SDValue Op, SelectionDAG &DAG) const {
 }
 
 SDValue RISCVTargetLowering::lowerIntrinsicLoadTagged(SDValue Op,
-                                              SelectionDAG &DAG) const {
-  errs() << "Lowering an int_riscv_load_tagged\n";
+                                              SelectionDAG &DAG, bool WithChain) const {
   DebugLoc DL = Op.getDebugLoc();
   unsigned OpNo = 0;
-  // First we have the chain.
-  errs() << "First argument is type " << Op.getOperand(OpNo).getValueType().getEVTString() << "\n";
-  assert(Op.getOperand(OpNo).getValueType() == MVT::Other);
-  SDValue Chain = Op.getOperand(OpNo);
-  OpNo++;
+  SDValue Chain;
+  if(WithChain) {
+    // First we have the chain.
+    assert(Op.getOperand(OpNo).getValueType() == MVT::Other);
+    Chain = Op.getOperand(OpNo);
+    OpNo++;
+  }
   // Next we have the intrinsic number.
   assert(Op.getOperand(OpNo).getOpcode() == ISD::TargetConstant);
   OpNo++;
   // Now the actual pointer argument.
   SDValue ptr = Op.getOperand(OpNo);
-  EVT type = ptr.getValueType();
-  errs() << "Actual pointer argument is type " << type.getEVTString() << "\n";
   // May actually want LTAG or even LD.
   bool dataUsed = !SDValue(Op.getNode(),0).use_empty();
   bool tagUsed = !SDValue(Op.getNode(),1).use_empty();
   // Generate the MachineNode.
   if(dataUsed && tagUsed) {
-    SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, MVT::Other, ptr);
-    // Append the chain.
-    SDValue DataReg(LoadTagged, 0);
-    SDValue TagReg(LoadTagged, 1);
-    SDValue NewChain(LoadTagged, 2);
-    SDValue Vals[] = { DataReg, TagReg, NewChain };
-    return DAG.getMergeValues(Vals, 3, DL);
+    if(WithChain) {
+      SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, MVT::Other, ptr);
+      // Append the chain.
+      SDValue DataReg(LoadTagged, 0);
+      SDValue TagReg(LoadTagged, 1);
+      SDValue NewChain(LoadTagged, 2);
+      SDValue Vals[] = { DataReg, TagReg, NewChain };
+      return DAG.getMergeValues(Vals, 3, DL);
+    } else {
+      SDNode *LoadTagged = DAG.getMachineNode(RISCV::LOAD_TAGGED, DL, MVT::i64, MVT::i64, ptr);
+      SDValue DataReg(LoadTagged, 0);
+      SDValue TagReg(LoadTagged, 1);
+      SDValue Vals[] = { DataReg, TagReg };
+      return DAG.getMergeValues(Vals, 2, DL);
+    }
   } else if(tagUsed) {
     SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
-    SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, MVT::Other, ptr, Zero);
-    SDValue TagReg(Load, 0);
-    SDValue NewChain(Load, 1);
-    SDValue Vals[] = { Zero, TagReg, NewChain };
-    return DAG.getMergeValues(Vals, 3, DL);
+    if(WithChain) {
+      SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, MVT::Other, ptr, Zero);
+      SDValue TagReg(Load, 0);
+      SDValue NewChain(Load, 1);
+      SDValue Vals[] = { Zero, TagReg, NewChain };
+      return DAG.getMergeValues(Vals, 3, DL);
+    } else {
+      SDNode *Load = DAG.getMachineNode(RISCV::LTAG, DL, MVT::i64, ptr, Zero);
+      SDValue TagReg(Load, 0);
+      SDValue Vals[] = { Zero, TagReg };
+      return DAG.getMergeValues(Vals, 2, DL);
+    }
   } else if(dataUsed) {
     SDValue Zero = DAG.getTargetConstant(0, MVT::i64);
     SDNode *Load = DAG.getMachineNode(RISCV::LD, DL, MVT::i64, MVT::Other, ptr, Zero);
     SDValue DataReg(Load, 0);
-    SDValue NewChain(Load, 1);
-    SDValue Vals[] = { DataReg, Zero, NewChain };
-    return DAG.getMergeValues(Vals, 3, DL);
+    if(WithChain) {
+      SDValue NewChain(Load, 1);
+      SDValue Vals[] = { DataReg, Zero, NewChain };
+      return DAG.getMergeValues(Vals, 3, DL);
+    } else {
+      SDValue Vals[] = { DataReg, Zero };
+      return DAG.getMergeValues(Vals, 2, DL);
+    }
   } else {
     assert(0 && "Outputs not used, should have been deleted already??");
   }
@@ -1742,7 +1762,17 @@ SDValue RISCVTargetLowering::lowerINTRINSIC_W_CHAIN(SDValue Op,
                                               SelectionDAG &DAG) const {
   switch (cast<ConstantSDNode>(Op->getOperand(1))->getZExtValue()) {
   case Intrinsic::riscv_load_tagged:
-    return lowerIntrinsicLoadTagged(Op, DAG);
+    return lowerIntrinsicLoadTagged(Op, DAG, true);
+  default:
+    return SDValue(); // Not one of ours.
+  }
+}
+
+SDValue RISCVTargetLowering::lowerINTRINSIC_WO_CHAIN(SDValue Op,
+                                              SelectionDAG &DAG) const {
+  switch (cast<ConstantSDNode>(Op->getOperand(0))->getZExtValue()) {
+  case Intrinsic::riscv_load_tagged:
+    return lowerIntrinsicLoadTagged(Op, DAG, false);
   default:
     return SDValue(); // Not one of ours.
   }
@@ -1779,6 +1809,8 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
     return lowerFRAMEADDR(Op, DAG);
   case ISD::INTRINSIC_W_CHAIN:
     return lowerINTRINSIC_W_CHAIN(Op, DAG);
+  case ISD::INTRINSIC_WO_CHAIN:
+    return lowerINTRINSIC_WO_CHAIN(Op, DAG);
   default:
     llvm_unreachable("Unexpected node to lower");
   }
