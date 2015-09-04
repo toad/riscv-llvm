@@ -2866,15 +2866,6 @@ Cost of STAL (lower priority).
 \end_layout
 
 \begin_layout Section
-Small essential fixes
-\end_layout
-
-\begin_layout Standard
-Make sure the tag-wrong branch is seen as “unlikely”, if still using branches
- in tag checking.
-\end_layout
-
-\begin_layout Section
 Bigger fixes
 \end_layout
 
