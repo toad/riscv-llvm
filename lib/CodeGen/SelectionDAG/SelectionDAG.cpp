@@ -3740,40 +3740,47 @@ static SDValue getMemcpyLoadsAndStores(SelectionDAG &DAG, DebugLoc dl,
       EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), VT);
       assert(NVT.bitsGE(VT));
       SDValue CopyFrom = getMemBasePlusOffset(Src, SrcOff, DAG);
-      Value = DAG.getExtLoad(ISD::EXTLOAD, dl, NVT, Chain, CopyFrom,
-                             SrcPtrInfo.getWithOffset(SrcOff), VT, isVol, false,
-                             MinAlign(SrcAlign, SrcOff));
       if(CopyTags == WITH_TAGS) {
-        errs() << "Trying to add ltag in memcpy...\n";
+        // Load the value and the tag simultaneously.
+        errs() << "Trying to add int_riscv_load_tagged in memcpy...\n";
         SmallVector<SDValue, 8> Ops;
-        // FIXME LOWRISC: Assume that reads do not invalidate loads, so no dependency.
         Ops.push_back(Chain);
         // FIXME what's the type for?
-        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_ltag, 
+        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_load_tagged, 
                                             TLI.getPointerTy()));
         // Arguments...
         Ops.push_back(CopyFrom);
-        TagValue = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
-                         DAG.getVTList(VT), &Ops[0], Ops.size());
-        errs() << "Added ltag in memcpy...\n";
+        SmallVector<EVT, 8> VTs;
+        VTs.push_back(VT);
+        VTs.push_back(VT);
+        SDValue LoadResult = DAG.getNode(ISD::INTRINSIC_W_CHAIN, dl,
+                                         VTs, &Ops[0], Ops.size());
+        Value = LoadResult.getValue(0);
+        TagValue = LoadResult.getValue(1);
+        errs() << "Added int_riscv_load_tagged in memcpy.\n";
+      } else {
+        Value = DAG.getExtLoad(ISD::EXTLOAD, dl, NVT, Chain, CopyFrom,
+                               SrcPtrInfo.getWithOffset(SrcOff), VT, isVol, false,
+                               MinAlign(SrcAlign, SrcOff));
       }
       SDValue CopyTo = getMemBasePlusOffset(Dst, DstOff, DAG);
-      Store = DAG.getTruncStore(Chain, dl, Value, CopyTo,
-                                DstPtrInfo.getWithOffset(DstOff), VT, isVol,
-                                false, Align);
       if(CopyTags == WITH_TAGS) {
-        errs() << "Trying to add stag in memcpy...\n";
+        errs() << "Trying to add int_riscv_store_tagged in memcpy...\n";
         SmallVector<SDValue, 8> Ops;
-        Ops.push_back(Store); // Chain: stag must be after store.
-        // FIXME what's the type for?
-        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_stag, 
+        Ops.push_back(Chain);
+        Ops.push_back(DAG.getTargetConstant(Intrinsic::riscv_store_tagged, 
                                             TLI.getPointerTy()));
         // Arguments...
+        Ops.push_back(Value);
         Ops.push_back(TagValue);
         Ops.push_back(CopyTo);
         TagStore = DAG.getNode(ISD::INTRINSIC_VOID, dl,
                          DAG.getVTList(MVT::Other), &Ops[0], Ops.size());
-        errs() << "Added stag in memcpy...\n";
+        errs() << "Added int_riscv_store_tagged in memcpy.\n";
+      } else {
+        Store = DAG.getTruncStore(Chain, dl, Value, CopyTo,
+                                  DstPtrInfo.getWithOffset(DstOff), VT, isVol,
+                                  false, Align);
       }
     }
     OutChains.push_back(ToPush);
