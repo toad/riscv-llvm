@@ -169,7 +169,7 @@ $ git remote add toad https://github.com/toad/riscv-isa-sim.git
 $ git fetch toad
 $ git checkout toad/check_on_all_no_propagation
 $ git log
-commit 7f74bff57a18ca23cb71ce3b19339be617aa0e7b
+commit 130aa15d7bf40fb3d8c6c509f368e08880176f6d
 ...
 Major changes:
 - Support for new instructions, tagged registers and trap CSR's.
@@ -195,7 +195,7 @@ $ git remote add toad https://github.com/toad/lowrisc-tag-tests.git
 $ git fetch toad
 $ git checkout toad/tagged-memory-enforcement-tests
 $ git log
-commit b4f11fcf68a75c3f2dea6718dbf24bc8fbe1618b
+commit d8a728a11b9b8825af5b0abf9ddbdfa1530c8202
 ...
 Major changes:
 - Lots of tests for the new tagged registers.
